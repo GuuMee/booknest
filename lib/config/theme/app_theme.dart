@@ -16,7 +16,7 @@ class AppTheme {
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       brightness: Brightness.light,
-      surface: AppColors.surfaceLight,        // ✅ background → surface
+      surface: AppColors.surfaceLight,
       primary: AppColors.primary,
       secondary: AppColors.secondary,
       error: AppColors.error,
@@ -27,7 +27,7 @@ class AppTheme {
     // ─── AppBar ─────────────────────────────────────────
     appBarTheme: AppBarTheme(
       elevation: 0,
-      scrolledUnderElevation: 0,             // ✅ добавлено
+      scrolledUnderElevation: 0,
       backgroundColor: Colors.transparent,
       foregroundColor: AppColors.textPrimary,
       centerTitle: false,
@@ -41,7 +41,8 @@ class AppTheme {
     ),
 
     // ─── Bottom Navigation ──────────────────────────────
-    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+    bottomNavigationBarTheme:
+        const BottomNavigationBarThemeData(
       backgroundColor: AppColors.surfaceLight,
       selectedItemColor: AppColors.primary,
       unselectedItemColor: AppColors.textSecondary,
@@ -51,20 +52,27 @@ class AppTheme {
     ),
 
     // ─── Navigation Bar (Material 3) ────────────────────
-    navigationBarTheme: NavigationBarThemeData(   // ✅ добавлено
+    navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.surfaceLight,
-      indicatorColor: AppColors.primary.withOpacity(0.12),
-      iconTheme: WidgetStateProperty.resolveWith((states) {
+      indicatorColor:
+          AppColors.primary.withOpacity(0.12),
+      iconTheme:
+          WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return const IconThemeData(color: AppColors.primary);
+          return const IconThemeData(
+              color: AppColors.primary);
         }
-        return const IconThemeData(color: AppColors.textSecondary);
+        return const IconThemeData(
+            color: AppColors.textSecondary);
       }),
-      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+      labelTextStyle:
+          WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return AppTypography.label.copyWith(color: AppColors.primary);
+          return AppTypography.label
+              .copyWith(color: AppColors.primary);
         }
-        return AppTypography.label.copyWith(color: AppColors.textSecondary);
+        return AppTypography.label.copyWith(
+            color: AppColors.textSecondary);
       }),
     ),
 
@@ -73,13 +81,12 @@ class AppTheme {
       elevation: 2,
       shadowColor: AppColors.shadowLight,
       color: AppColors.surfaceLight,
-      surfaceTintColor: Colors.transparent,   // ✅ убирает M3 tint
+      surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
       margin: const EdgeInsets.symmetric(
-        horizontal: 0, vertical: 4,
-      ),
+          horizontal: 0, vertical: 4),
     ),
 
     // ─── Elevated Button ────────────────────────────────
@@ -87,7 +94,8 @@ class AppTheme {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        disabledBackgroundColor: AppColors.borderLight,
+        disabledBackgroundColor:
+            AppColors.borderLight,
         disabledForegroundColor: AppColors.textHint,
         padding: const EdgeInsets.symmetric(
           horizontal: 32,
@@ -96,14 +104,14 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        textStyle: AppTypography.buttonLarge,  // ✅ исправлено
+        textStyle: AppTypography.buttonLarge,
         elevation: 2,
         shadowColor: AppColors.shadowLight,
       ),
     ),
 
     // ─── Text Button ────────────────────────────────────
-    textButtonTheme: TextButtonThemeData(         // ✅ добавлено
+    textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: AppColors.primary,
         textStyle: AppTypography.buttonMedium,
@@ -115,7 +123,7 @@ class AppTheme {
     ),
 
     // ─── Outlined Button ────────────────────────────────
-    outlinedButtonTheme: OutlinedButtonThemeData( // ✅ добавлено
+    outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primary,
         side: const BorderSide(
@@ -136,7 +144,8 @@ class AppTheme {
     // ─── Input Decoration ───────────────────────────────
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.borderLight.withOpacity(0.5),
+      fillColor:
+          AppColors.borderLight.withOpacity(0.5),
       hintStyle: AppTypography.bodyMedium.copyWith(
         color: AppColors.textHint,
       ),
@@ -146,7 +155,7 @@ class AppTheme {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(           // ✅ добавлено
+        borderSide: const BorderSide(
           color: AppColors.borderLight,
           width: 1,
         ),
@@ -158,14 +167,14 @@ class AppTheme {
           width: 2,
         ),
       ),
-      errorBorder: OutlineInputBorder(          // ✅ добавлено
+      errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(
           color: AppColors.error,
           width: 1,
         ),
       ),
-      focusedErrorBorder: OutlineInputBorder(   // ✅ добавлено
+      focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(
           color: AppColors.error,
@@ -179,9 +188,10 @@ class AppTheme {
     ),
 
     // ─── Chip ───────────────────────────────────────────
-    chipTheme: ChipThemeData(                   // ✅ добавлено
+    chipTheme: ChipThemeData(
       backgroundColor: AppColors.borderLight,
-      selectedColor: AppColors.primary.withOpacity(0.15),
+      selectedColor:
+          AppColors.primary.withOpacity(0.15),
       labelStyle: AppTypography.bodySmall,
       padding: const EdgeInsets.symmetric(
         horizontal: 12,
@@ -194,30 +204,58 @@ class AppTheme {
     ),
 
     // ─── Divider ────────────────────────────────────────
-    dividerTheme: const DividerThemeData(       // ✅ добавлено
+    dividerTheme: const DividerThemeData(
       color: AppColors.divider,
       thickness: 1,
       space: 1,
     ),
 
+    // ─── SnackBar ───────────────────────────────────────
+    // ✅ ADDED from top code
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+    ),
+
+    // ─── Dialog ─────────────────────────────────────────
+    // ✅ ADDED from top code
+    dialogTheme: DialogTheme(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+    ),
+
+    // ─── Bottom Sheet ───────────────────────────────────
+    // ✅ ADDED from top code
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
+      ),
+    ),
+
     // ─── Text Theme ─────────────────────────────────────
-    textTheme: TextTheme(                       // ✅ добавлено
-      displayLarge:  AppTypography.heading1,
+    textTheme: TextTheme(
+      displayLarge: AppTypography.heading1,
       displayMedium: AppTypography.heading2,
-      displaySmall:  AppTypography.heading3,
+      displaySmall: AppTypography.heading3,
       headlineMedium: AppTypography.heading4,
-      headlineSmall:  AppTypography.heading5,
-      bodyLarge:   AppTypography.bodyLarge,
-      bodyMedium:  AppTypography.bodyMedium,
-      bodySmall:   AppTypography.bodySmall,
-      labelLarge:  AppTypography.buttonLarge,
+      headlineSmall: AppTypography.heading5,
+      bodyLarge: AppTypography.bodyLarge,
+      bodyMedium: AppTypography.bodyMedium,
+      bodySmall: AppTypography.bodySmall,
+      labelLarge: AppTypography.buttonLarge,
       labelMedium: AppTypography.label,
-      labelSmall:  AppTypography.caption,
+      labelSmall: AppTypography.caption,
     ),
   );
 
   // ─── Dark Theme ─────────────────────────────────────────
-  static ThemeData darkTheme = ThemeData(       // ✅ полностью заполнен
+  static ThemeData darkTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
 
@@ -247,10 +285,12 @@ class AppTheme {
       ),
     ),
 
-    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+    bottomNavigationBarTheme:
+        const BottomNavigationBarThemeData(
       backgroundColor: AppColors.surfaceDark,
       selectedItemColor: AppColors.primaryLight,
-      unselectedItemColor: AppColors.textSecondaryDark,
+      unselectedItemColor:
+          AppColors.textSecondaryDark,
       type: BottomNavigationBarType.fixed,
       elevation: 10,
       showUnselectedLabels: true,
@@ -258,12 +298,16 @@ class AppTheme {
 
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.surfaceDark,
-      indicatorColor: AppColors.primaryLight.withOpacity(0.15),
-      iconTheme: WidgetStateProperty.resolveWith((states) {
+      indicatorColor:
+          AppColors.primaryLight.withOpacity(0.15),
+      iconTheme:
+          WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return const IconThemeData(color: AppColors.primaryLight);
+          return const IconThemeData(
+              color: AppColors.primaryLight);
         }
-        return const IconThemeData(color: AppColors.textSecondaryDark);
+        return const IconThemeData(
+            color: AppColors.textSecondaryDark);
       }),
     ),
 
@@ -318,7 +362,8 @@ class AppTheme {
 
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.borderDark.withOpacity(0.5),
+      fillColor:
+          AppColors.borderDark.withOpacity(0.5),
       hintStyle: AppTypography.bodyMedium.copyWith(
         color: AppColors.textHint,
       ),
@@ -362,7 +407,8 @@ class AppTheme {
 
     chipTheme: ChipThemeData(
       backgroundColor: AppColors.borderDark,
-      selectedColor: AppColors.primaryLight.withOpacity(0.2),
+      selectedColor:
+          AppColors.primaryLight.withOpacity(0.2),
       labelStyle: AppTypography.bodySmall.copyWith(
         color: AppColors.textPrimaryDark,
       ),
@@ -382,28 +428,51 @@ class AppTheme {
       space: 1,
     ),
 
+    // ─── SnackBar ───────────────────────────────────────
+    // ✅ ADDED from top code
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+    ),
+
+    // ─── Dialog ─────────────────────────────────────────
+    // ✅ ADDED from top code
+    dialogTheme: DialogTheme(
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+    ),
+
+    // ─── Bottom Sheet ───────────────────────────────────
+    // ✅ ADDED from top code
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: Color(0xFF1E1E1E),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
+      ),
+    ),
+
     textTheme: TextTheme(
-      displayLarge:  AppTypography.heading1.copyWith(
-        color: AppColors.textPrimaryDark,
-      ),
-      displayMedium: AppTypography.heading2.copyWith(
-        color: AppColors.textPrimaryDark,
-      ),
-      displaySmall:  AppTypography.heading3.copyWith(
-        color: AppColors.textPrimaryDark,
-      ),
-      bodyLarge:  AppTypography.bodyLarge.copyWith(
-        color: AppColors.textPrimaryDark,
-      ),
-      bodyMedium: AppTypography.bodyMedium.copyWith(
-        color: AppColors.textPrimaryDark,
-      ),
-      bodySmall:  AppTypography.bodySmall.copyWith(
-        color: AppColors.textSecondaryDark,
-      ),
-      labelLarge:  AppTypography.buttonLarge,
+      displayLarge: AppTypography.heading1
+          .copyWith(color: AppColors.textPrimaryDark),
+      displayMedium: AppTypography.heading2
+          .copyWith(color: AppColors.textPrimaryDark),
+      displaySmall: AppTypography.heading3
+          .copyWith(color: AppColors.textPrimaryDark),
+      bodyLarge: AppTypography.bodyLarge
+          .copyWith(color: AppColors.textPrimaryDark),
+      bodyMedium: AppTypography.bodyMedium
+          .copyWith(color: AppColors.textPrimaryDark),
+      bodySmall: AppTypography.bodySmall.copyWith(
+          color: AppColors.textSecondaryDark),
+      labelLarge: AppTypography.buttonLarge,
       labelMedium: AppTypography.label,
-      labelSmall:  AppTypography.caption,
+      labelSmall: AppTypography.caption,
     ),
   );
 
@@ -419,12 +488,14 @@ class AppTheme {
       tertiary: AppColors.kidsOrange,
     ),
 
-    scaffoldBackgroundColor: const Color(0xFFFFF8E1),
+    scaffoldBackgroundColor:
+        const Color(0xFFFFF8E1),
 
     appBarTheme: AppBarTheme(
       elevation: 0,
       backgroundColor: Colors.transparent,
-      titleTextStyle: AppTypography.kidsHeading.copyWith(
+      titleTextStyle:
+          AppTypography.kidsHeading.copyWith(
         fontSize: 22,
         color: AppColors.kidsPurple,
       ),
@@ -432,7 +503,8 @@ class AppTheme {
 
     cardTheme: CardThemeData(
       elevation: 4,
-      shadowColor: AppColors.kidsBlue.withOpacity(0.2),
+      shadowColor:
+          AppColors.kidsBlue.withOpacity(0.2),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
       ),
@@ -455,11 +527,12 @@ class AppTheme {
     ),
 
     textTheme: TextTheme(
-      displayLarge:  AppTypography.kidsHeading,
-      displayMedium: AppTypography.kidsHeadingSmall,
-      bodyLarge:     AppTypography.kidsBody,
-      bodyMedium:    AppTypography.kidsBodySmall,
-      labelLarge:    AppTypography.kidsButton,
+      displayLarge: AppTypography.kidsHeading,
+      displayMedium:
+          AppTypography.kidsHeadingSmall,
+      bodyLarge: AppTypography.kidsBody,
+      bodyMedium: AppTypography.kidsBodySmall,
+      labelLarge: AppTypography.kidsButton,
     ),
   );
 }

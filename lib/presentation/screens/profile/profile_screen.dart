@@ -1,23 +1,23 @@
 // lib/presentation/screens/profile/profile_screen.dart
 
-import 'package:flutter/material.dart';              // StatelessWidget, Widget, etc.
-import 'package:flutter_bloc/flutter_bloc.dart';     // BlocBuilder, context.read<>()
 import 'package:cached_network_image/cached_network_image.dart'; // CachedNetworkImageProvider
-import 'package:go_router/go_router.dart';           // context.push()
-import 'package:url_launcher/url_launcher.dart';     // canLaunchUrl, launchUrl
+import 'package:flutter/material.dart';                          // StatelessWidget, Widget, etc.
+import 'package:flutter_bloc/flutter_bloc.dart';                 // BlocBuilder, context.read<>()
+import 'package:go_router/go_router.dart';                       // context.push()
+import 'package:url_launcher/url_launcher.dart';                 // canLaunchUrl, launchUrl
 
 // Presentation - BLoC - Auth
-import '../../bloc/auth/auth_bloc.dart';
-import '../../bloc/auth/auth_state.dart';            // Authenticated
-import '../../bloc/auth/auth_event.dart';            // SignOutRequested
+import '../../bloc/auth/auth_bloc.dart';                         // AuthBloc
+import '../../bloc/auth/auth_state.dart';                        // AuthState, Authenticated
+import '../../bloc/auth/auth_event.dart';                        // SignOutRequested
 
 // Presentation - BLoC - Profile
-import '../../bloc/profile/profile_bloc.dart';
-import '../../bloc/profile/profile_state.dart';      // ProfileLoaded
-import '../../bloc/profile/profile_event.dart';      // SubmitFeedback
+import '../../bloc/profile/profile_bloc.dart';                   // ProfileBloc
+import '../../bloc/profile/profile_state.dart';                  // ProfileState, ProfileLoaded
+import '../../bloc/profile/profile_event.dart';                  // SubmitFeedback
 
 // Core - Theme
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_colors.dart';                    // AppColors
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCREEN
@@ -43,8 +43,7 @@ class ProfileScreen extends StatelessWidget {
                 child: Container(
                   padding: EdgeInsets.fromLTRB(
                     24,
-                    MediaQuery.of(context).padding.top +
-                        20,
+                    MediaQuery.of(context).padding.top + 20,
                     24,
                     24,
                   ),
@@ -57,8 +56,7 @@ class ProfileScreen extends StatelessWidget {
                         AppColors.primary.withBlue(200),
                       ],
                     ),
-                    borderRadius:
-                        const BorderRadius.vertical(
+                    borderRadius: const BorderRadius.vertical(
                       bottom: Radius.circular(32),
                     ),
                   ),
@@ -67,41 +65,33 @@ class ProfileScreen extends StatelessWidget {
                       // Top Bar
                       Row(
                         mainAxisAlignment:
-                            MainAxisAlignment
-                                .spaceBetween,
+                            MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
                             'Profile',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 28,
-                              fontWeight:
-                                  FontWeight.w900,
+                              fontWeight: FontWeight.w900,
                             ),
                           ),
                           Row(
                             children: [
                               IconButton(
                                 icon: const Icon(
-                                  Icons
-                                      .notifications_outlined,
+                                  Icons.notifications_outlined,
                                   color: Colors.white,
                                 ),
                                 onPressed: () =>
-                                    context.push(
-                                  '/notifications',
-                                ),
+                                    context.push('/notifications'),
                               ),
                               IconButton(
                                 icon: const Icon(
-                                  Icons
-                                      .settings_outlined,
+                                  Icons.settings_outlined,
                                   color: Colors.white,
                                 ),
                                 onPressed: () =>
-                                    context.push(
-                                  '/settings',
-                                ),
+                                    context.push('/settings'),
                               ),
                             ],
                           ),
@@ -122,32 +112,24 @@ class ProfileScreen extends StatelessWidget {
                                 color: Colors.white,
                                 width: 3,
                               ),
-                              image: user?.avatarUrl !=
-                                      null
+                              image: user?.avatarUrl != null
                                   ? DecorationImage(
-                                      image:
-                                          CachedNetworkImageProvider(
+                                      image: CachedNetworkImageProvider(
                                         user!.avatarUrl!,
                                       ),
                                       fit: BoxFit.cover,
                                     )
                                   : null,
                             ),
-                            child: user?.avatarUrl ==
-                                    null
+                            child: user?.avatarUrl == null
                                 ? Center(
                                     child: Text(
-                                      (user?.name ??
-                                              'U')[0]
+                                      (user?.name ?? 'U')[0]
                                           .toUpperCase(),
-                                      style:
-                                          const TextStyle(
-                                        color:
-                                            Colors.white,
+                                      style: const TextStyle(
+                                        color: Colors.white,
                                         fontSize: 28,
-                                        fontWeight:
-                                            FontWeight
-                                                .w800,
+                                        fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                   )
@@ -159,18 +141,14 @@ class ProfileScreen extends StatelessWidget {
                           Expanded(
                             child: Column(
                               crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
+                                  CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  user?.name ??
-                                      'Guest User',
-                                  style:
-                                      const TextStyle(
+                                  user?.name ?? 'Guest User',
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 20,
-                                    fontWeight:
-                                        FontWeight.w800,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -188,32 +166,24 @@ class ProfileScreen extends StatelessWidget {
                                 // Subscription Badge
                                 Container(
                                   padding:
-                                      const EdgeInsets
-                                          .symmetric(
+                                      const EdgeInsets.symmetric(
                                     horizontal: 12,
                                     vertical: 4,
                                   ),
-                                  decoration:
-                                      BoxDecoration(
+                                  decoration: BoxDecoration(
                                     color: Colors.white
-                                        .withOpacity(
-                                            0.2),
+                                        .withOpacity(0.2),
                                     borderRadius:
-                                        BorderRadius
-                                            .circular(
-                                                20),
+                                        BorderRadius.circular(20),
                                   ),
                                   child: Text(
-                                    user?.isPremium ==
-                                            true
+                                    user?.isPremium == true
                                         ? '⭐ Premium Member'
                                         : '📖 Free Plan',
-                                    style:
-                                        const TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
-                                      fontWeight:
-                                          FontWeight.w600,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
@@ -225,28 +195,22 @@ class ProfileScreen extends StatelessWidget {
                       const SizedBox(height: 24),
 
                       // Reading Stats
-                      BlocBuilder<ProfileBloc,
-                          ProfileState>(
-                        builder:
-                            (context, profileState) {
+                      BlocBuilder<ProfileBloc, ProfileState>(
+                        builder: (context, profileState) {
                           final stats =
-                              profileState
-                                      is ProfileLoaded
+                              profileState is ProfileLoaded
                                   ? profileState.stats
                                   : null;
 
                           return Row(
                             children: [
                               _ProfileStat(
-                                value:
-                                    '${stats?.booksRead ?? 0}',
+                                value: '${stats?.booksRead ?? 0}',
                                 label: 'Books Read',
                               ),
                               _ProfileStatDivider(),
                               _ProfileStat(
-                                value:
-                                    stats?.totalReadTime ??
-                                        '0h',
+                                value: stats?.totalReadTime ?? '0h',
                                 label: 'Read Time',
                               ),
                               _ProfileStatDivider(),
@@ -257,8 +221,7 @@ class ProfileScreen extends StatelessWidget {
                               ),
                               _ProfileStatDivider(),
                               _ProfileStat(
-                                value:
-                                    '${stats?.totalPages ?? 0}',
+                                value: '${stats?.totalPages ?? 0}',
                                 label: 'Pages',
                               ),
                             ],
@@ -275,48 +238,41 @@ class ProfileScreen extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // My Library
-                      _SectionTitle(
-                        title: 'My Library',
-                      ),
+                      _SectionTitle(title: 'My Library'),
                       const SizedBox(height: 12),
                       _MenuCard(
                         children: [
                           _MenuItem(
-                            icon:
-                                Icons.favorite_rounded,
+                            icon: Icons.favorite_rounded,
                             iconColor: Colors.red,
                             title: 'Favorites',
-                            onTap: () => context
-                                .push('/favorites'),
+                            onTap: () =>
+                                context.push('/favorites'),
                           ),
                           _MenuItem(
-                            icon:
-                                Icons.download_rounded,
+                            icon: Icons.download_rounded,
                             iconColor: Colors.blue,
                             title: 'Downloads',
-                            onTap: () => context
-                                .push('/downloads'),
+                            onTap: () =>
+                                context.push('/downloads'),
                           ),
                           _MenuItem(
-                            icon:
-                                Icons.bookmark_rounded,
+                            icon: Icons.bookmark_rounded,
                             iconColor: Colors.amber,
                             title: 'Bookmarks',
-                            onTap: () => context.push(
-                              '/all-bookmarks',
-                            ),
+                            onTap: () =>
+                                context.push('/all-bookmarks'),
                           ),
                           _MenuItem(
                             icon: Icons
                                 .collections_bookmark_rounded,
                             iconColor: Colors.purple,
                             title: 'Collections',
-                            onTap: () => context
-                                .push('/collections'),
+                            onTap: () =>
+                                context.push('/collections'),
                           ),
                           _MenuItem(
                             icon: Icons.history_rounded,
@@ -332,8 +288,7 @@ class ProfileScreen extends StatelessWidget {
 
                       // Goals & Achievements
                       _SectionTitle(
-                        title: 'Goals & Achievements',
-                      ),
+                          title: 'Goals & Achievements'),
                       const SizedBox(height: 12),
                       _MenuCard(
                         children: [
@@ -345,47 +300,39 @@ class ProfileScreen extends StatelessWidget {
                                 context.push('/goals'),
                           ),
                           _MenuItem(
-                            icon: Icons
-                                .emoji_events_rounded,
+                            icon: Icons.emoji_events_rounded,
                             iconColor: Colors.orange,
                             title: 'Achievements',
                             showDivider: false,
-                            onTap: () => context
-                                .push('/achievements'),
+                            onTap: () =>
+                                context.push('/achievements'),
                           ),
                         ],
                       ),
                       const SizedBox(height: 24),
 
                       // Subscription
-                      _SectionTitle(
-                        title: 'Subscription',
-                      ),
+                      _SectionTitle(title: 'Subscription'),
                       const SizedBox(height: 12),
                       _MenuCard(
                         children: [
                           _MenuItem(
                             icon: Icons.star_rounded,
-                            iconColor:
-                                Colors.amber.shade700,
-                            title:
-                                'Manage Subscription',
-                            subtitle:
-                                user?.isPremium == true
-                                    ? 'Premium - Active'
-                                    : 'Upgrade to Premium',
-                            onTap: () => context
-                                .push('/subscription'),
+                            iconColor: Colors.amber.shade700,
+                            title: 'Manage Subscription',
+                            subtitle: user?.isPremium == true
+                                ? 'Premium - Active'
+                                : 'Upgrade to Premium',
+                            onTap: () =>
+                                context.push('/subscription'),
                           ),
                           _MenuItem(
-                            icon: Icons
-                                .receipt_long_rounded,
+                            icon: Icons.receipt_long_rounded,
                             iconColor: Colors.indigo,
                             title: 'Purchase History',
                             showDivider: false,
-                            onTap: () => context.push(
-                              '/purchase-history',
-                            ),
+                            onTap: () => context
+                                .push('/purchase-history'),
                           ),
                         ],
                       ),
@@ -397,26 +344,21 @@ class ProfileScreen extends StatelessWidget {
                       _MenuCard(
                         children: [
                           _MenuItem(
-                            icon: Icons
-                                .help_outline_rounded,
+                            icon: Icons.help_outline_rounded,
                             iconColor: Colors.cyan,
                             title: 'Help & FAQ',
                             onTap: () =>
                                 context.push('/help'),
                           ),
                           _MenuItem(
-                            icon:
-                                Icons.feedback_outlined,
+                            icon: Icons.feedback_outlined,
                             iconColor: Colors.pink,
                             title: 'Send Feedback',
                             onTap: () =>
-                                _showFeedbackDialog(
-                              context,
-                            ),
+                                _showFeedbackDialog(context),
                           ),
                           _MenuItem(
-                            icon: Icons
-                                .privacy_tip_outlined,
+                            icon: Icons.privacy_tip_outlined,
                             iconColor: Colors.grey,
                             title: 'Privacy Policy',
                             onTap: () => _openUrl(
@@ -424,8 +366,7 @@ class ProfileScreen extends StatelessWidget {
                             ),
                           ),
                           _MenuItem(
-                            icon: Icons
-                                .description_outlined,
+                            icon: Icons.description_outlined,
                             iconColor: Colors.grey,
                             title: 'Terms of Service',
                             onTap: () => _openUrl(
@@ -433,16 +374,13 @@ class ProfileScreen extends StatelessWidget {
                             ),
                           ),
                           _MenuItem(
-                            icon: Icons
-                                .info_outline_rounded,
+                            icon: Icons.info_outline_rounded,
                             iconColor: Colors.blueGrey,
                             title: 'About BookNest',
                             subtitle: 'Version 1.0.0',
                             showDivider: false,
                             onTap: () =>
-                                _showAboutDialog(
-                              context,
-                            ),
+                                _showAboutDialog(context),
                           ),
                         ],
                       ),
@@ -454,9 +392,7 @@ class ProfileScreen extends StatelessWidget {
                           width: double.infinity,
                           child: OutlinedButton.icon(
                             onPressed: () =>
-                                _showSignOutDialog(
-                              context,
-                            ),
+                                _showSignOutDialog(context),
                             icon: const Icon(
                               Icons.logout_rounded,
                               color: Colors.red,
@@ -467,21 +403,17 @@ class ProfileScreen extends StatelessWidget {
                                 color: Colors.red,
                               ),
                             ),
-                            style:
-                                OutlinedButton.styleFrom(
-                              padding: const EdgeInsets
-                                  .symmetric(
+                            style: OutlinedButton.styleFrom(
+                              padding:
+                                  const EdgeInsets.symmetric(
                                 vertical: 14,
                               ),
-                              shape:
-                                  RoundedRectangleBorder(
+                              shape: RoundedRectangleBorder(
                                 borderRadius:
-                                    BorderRadius
-                                        .circular(16),
+                                    BorderRadius.circular(16),
                               ),
                               side: BorderSide(
-                                color:
-                                    Colors.red.shade200,
+                                color: Colors.red.shade200,
                               ),
                             ),
                           ),
@@ -497,23 +429,18 @@ class ProfileScreen extends StatelessWidget {
                             icon: const Icon(
                               Icons.login_rounded,
                             ),
-                            label:
-                                const Text('Sign In'),
-                            style:
-                                ElevatedButton.styleFrom(
+                            label: const Text('Sign In'),
+                            style: ElevatedButton.styleFrom(
                               backgroundColor:
                                   AppColors.primary,
-                              foregroundColor:
-                                  Colors.white,
-                              padding: const EdgeInsets
-                                  .symmetric(
+                              foregroundColor: Colors.white,
+                              padding:
+                                  const EdgeInsets.symmetric(
                                 vertical: 14,
                               ),
-                              shape:
-                                  RoundedRectangleBorder(
+                              shape: RoundedRectangleBorder(
                                 borderRadius:
-                                    BorderRadius
-                                        .circular(16),
+                                    BorderRadius.circular(16),
                               ),
                             ),
                           ),
@@ -555,9 +482,7 @@ class ProfileScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              context
-                  .read<AuthBloc>()
-                  .add(SignOutRequested());
+              context.read<AuthBloc>().add(SignOutRequested());
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
@@ -595,15 +520,11 @@ class ProfileScreen extends StatelessWidget {
                 24,
                 24,
                 24,
-                MediaQuery.of(context)
-                        .viewInsets
-                        .bottom +
-                    24,
+                MediaQuery.of(context).viewInsets.bottom + 24,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Handle
                   Center(
@@ -612,8 +533,7 @@ class ProfileScreen extends StatelessWidget {
                       height: 4,
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
-                        borderRadius:
-                            BorderRadius.circular(2),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
@@ -633,26 +553,23 @@ class ProfileScreen extends StatelessWidget {
                     children: [
                       _FeedbackChip(
                         label: '💡 Suggestion',
-                        isSelected:
-                            feedbackType == 'suggestion',
-                        onTap: () => setModalState(() =>
-                            feedbackType = 'suggestion'),
+                        isSelected: feedbackType == 'suggestion',
+                        onTap: () => setModalState(
+                            () => feedbackType = 'suggestion'),
                       ),
                       const SizedBox(width: 8),
                       _FeedbackChip(
                         label: '🐛 Bug Report',
-                        isSelected:
-                            feedbackType == 'bug',
-                        onTap: () => setModalState(() =>
-                            feedbackType = 'bug'),
+                        isSelected: feedbackType == 'bug',
+                        onTap: () => setModalState(
+                            () => feedbackType = 'bug'),
                       ),
                       const SizedBox(width: 8),
                       _FeedbackChip(
                         label: '❤️ Praise',
-                        isSelected:
-                            feedbackType == 'praise',
-                        onTap: () => setModalState(() =>
-                            feedbackType = 'praise'),
+                        isSelected: feedbackType == 'praise',
+                        onTap: () => setModalState(
+                            () => feedbackType = 'praise'),
                       ),
                     ],
                   ),
@@ -663,13 +580,11 @@ class ProfileScreen extends StatelessWidget {
                     controller: feedbackController,
                     maxLines: 5,
                     decoration: InputDecoration(
-                      hintText:
-                          'Tell us what you think...',
+                      hintText: 'Tell us what you think...',
                       filled: true,
                       fillColor: Colors.grey.shade100,
                       border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide.none,
                       ),
                     ),
@@ -684,15 +599,12 @@ class ProfileScreen extends StatelessWidget {
                         if (feedbackController.text
                             .trim()
                             .isNotEmpty) {
-                          context
-                              .read<ProfileBloc>()
-                              .add(
+                          context.read<ProfileBloc>().add(
                                 SubmitFeedback(
                                   type: feedbackType,
-                                  message:
-                                      feedbackController
-                                          .text
-                                          .trim(),
+                                  message: feedbackController
+                                      .text
+                                      .trim(),
                                 ),
                               );
                           Navigator.pop(context);
@@ -702,19 +614,16 @@ class ProfileScreen extends StatelessWidget {
                               content: Text(
                                 'Thank you for your feedback! 💖',
                               ),
-                              behavior:
-                                  SnackBarBehavior
-                                      .floating,
+                              behavior: SnackBarBehavior.floating,
                             ),
                           );
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            AppColors.primary,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets
-                            .symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius:
                               BorderRadius.circular(16),
@@ -783,8 +692,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               TextButton(
-                onPressed: () =>
-                    Navigator.pop(context),
+                onPressed: () => Navigator.pop(context),
                 child: const Text('Close'),
               ),
             ],
@@ -932,8 +840,7 @@ class _MenuItem extends StatelessWidget {
       children: [
         ListTile(
           onTap: onTap,
-          contentPadding:
-              const EdgeInsets.symmetric(
+          contentPadding: const EdgeInsets.symmetric(
             horizontal: 20,
             vertical: 2,
           ),
@@ -942,8 +849,7 @@ class _MenuItem extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               color: iconColor.withOpacity(0.1),
-              borderRadius:
-                  BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               icon,

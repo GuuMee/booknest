@@ -68,11 +68,11 @@ class _SearchFilterSheetState
 
   final List<Map<String, String>> _sortOptions = [
     {'id': 'relevance', 'label': 'Most Relevant'},
-    {'id': 'rating', 'label': 'Highest Rated'},
-    {'id': 'newest', 'label': 'Newest First'},
-    {'id': 'popular', 'label': 'Most Popular'},
+    {'id': 'rating',    'label': 'Highest Rated'},
+    {'id': 'newest',    'label': 'Newest First'},
+    {'id': 'popular',   'label': 'Most Popular'},
     {'id': 'title_asc', 'label': 'Title A-Z'},
-    {'id': 'title_desc', 'label': 'Title Z-A'},
+    {'id': 'title_desc','label': 'Title Z-A'},
   ];
 
   // ─────────────────────────────────────────
@@ -82,7 +82,8 @@ class _SearchFilterSheetState
   @override
   void initState() {
     super.initState();
-    final state = context.read<SearchBloc>().state;
+    final state =
+        context.read<SearchBloc>().state;
     if (state is SearchResults &&
         state.filters != null) {
       _sortBy = state.filters!.sortBy;
@@ -109,7 +110,8 @@ class _SearchFilterSheetState
           children: [
             // ── Handle & Header ───────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(
+              padding:
+                  const EdgeInsets.fromLTRB(
                 24,
                 12,
                 24,
@@ -122,9 +124,12 @@ class _SearchFilterSheetState
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
+                      color:
+                          Colors.grey.shade300,
                       borderRadius:
-                          BorderRadius.circular(2),
+                          BorderRadius.circular(
+                        2,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -146,7 +151,8 @@ class _SearchFilterSheetState
                       TextButton(
                         onPressed: () {
                           setState(() {
-                            _sortBy = 'relevance';
+                            _sortBy =
+                                'relevance';
                             _ratingRange =
                                 const RangeValues(
                               0,
@@ -178,7 +184,8 @@ class _SearchFilterSheetState
             Expanded(
               child: ListView(
                 controller: scrollController,
-                padding: const EdgeInsets.symmetric(
+                padding:
+                    const EdgeInsets.symmetric(
                   horizontal: 24,
                 ),
                 physics:
@@ -188,7 +195,8 @@ class _SearchFilterSheetState
                   const Text(
                     'Sort By',
                     style: TextStyle(
-                      fontWeight: FontWeight.w700,
+                      fontWeight:
+                          FontWeight.w700,
                       fontSize: 16,
                     ),
                   ),
@@ -196,10 +204,11 @@ class _SearchFilterSheetState
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children:
-                        _sortOptions.map((option) {
+                    children: _sortOptions
+                        .map((option) {
                       final isSelected =
-                          _sortBy == option['id'];
+                          _sortBy ==
+                              option['id'];
                       return GestureDetector(
                         onTap: () {
                           setState(
@@ -207,23 +216,30 @@ class _SearchFilterSheetState
                                 option['id']!,
                           );
                         },
-                        child: AnimatedContainer(
-                          duration: const Duration(
+                        child:
+                            AnimatedContainer(
+                          duration:
+                              const Duration(
                             milliseconds: 200,
                           ),
-                          padding: const EdgeInsets
-                              .symmetric(
+                          padding:
+                              const EdgeInsets
+                                  .symmetric(
                             horizontal: 16,
                             vertical: 10,
                           ),
-                          decoration: BoxDecoration(
+                          decoration:
+                              BoxDecoration(
                             color: isSelected
-                                ? AppColors.primary
-                                : Colors
-                                    .grey.shade100,
+                                ? AppColors
+                                    .primary
+                                : Colors.grey
+                                    .shade100,
                             borderRadius:
                                 BorderRadius
-                                    .circular(20),
+                                    .circular(
+                              20,
+                            ),
                             border: isSelected
                                 ? null
                                 : Border.all(
@@ -237,10 +253,11 @@ class _SearchFilterSheetState
                             style: TextStyle(
                               color: isSelected
                                   ? Colors.white
-                                  : Colors
-                                      .grey.shade700,
+                                  : Colors.grey
+                                      .shade700,
                               fontWeight:
-                                  FontWeight.w600,
+                                  FontWeight
+                                      .w600,
                               fontSize: 13,
                             ),
                           ),
@@ -254,7 +271,8 @@ class _SearchFilterSheetState
                   const Text(
                     'Categories',
                     style: TextStyle(
-                      fontWeight: FontWeight.w700,
+                      fontWeight:
+                          FontWeight.w700,
                       fontSize: 16,
                     ),
                   ),
@@ -262,51 +280,68 @@ class _SearchFilterSheetState
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children:
-                        _categories.map((category) {
+                    children: _categories
+                        .map((category) {
                       final isSelected =
                           _selectedCategories
-                              .contains(category);
+                              .contains(
+                        category,
+                      );
                       return GestureDetector(
                         onTap: () {
                           setState(() {
                             if (isSelected) {
                               _selectedCategories
-                                  .remove(category);
+                                  .remove(
+                                category,
+                              );
                             } else {
                               _selectedCategories
-                                  .add(category);
+                                  .add(
+                                category,
+                              );
                             }
                           });
                         },
-                        child: AnimatedContainer(
-                          duration: const Duration(
+                        child:
+                            AnimatedContainer(
+                          duration:
+                              const Duration(
                             milliseconds: 200,
                           ),
-                          padding: const EdgeInsets
-                              .symmetric(
+                          padding:
+                              const EdgeInsets
+                                  .symmetric(
                             horizontal: 16,
                             vertical: 10,
                           ),
-                          decoration: BoxDecoration(
+                          decoration:
+                              BoxDecoration(
                             color: isSelected
-                                ? AppColors.primary
-                                    .withOpacity(0.1)
-                                : Colors
-                                    .grey.shade100,
+                                ? AppColors
+                                    .primary
+                                    .withOpacity(
+                                    0.1,
+                                  )
+                                : Colors.grey
+                                    .shade100,
                             borderRadius:
                                 BorderRadius
-                                    .circular(20),
+                                    .circular(
+                              20,
+                            ),
                             border: Border.all(
                               color: isSelected
-                                  ? AppColors.primary
-                                  : Colors
-                                      .grey.shade200,
+                                  ? AppColors
+                                      .primary
+                                  : Colors.grey
+                                      .shade200,
                             ),
                           ),
                           child: Row(
                             mainAxisSize:
-                                MainAxisSize.min,
+                                MainAxisSize
+                                    .min,
                             children: [
                               if (isSelected) ...[
                                 Icon(
@@ -325,10 +360,12 @@ class _SearchFilterSheetState
                                   color: isSelected
                                       ? AppColors
                                           .primary
-                                      : Colors.grey
+                                      : Colors
+                                          .grey
                                           .shade700,
                                   fontWeight:
-                                      FontWeight.w600,
+                                      FontWeight
+                                          .w600,
                                   fontSize: 13,
                                 ),
                               ),
@@ -349,7 +386,8 @@ class _SearchFilterSheetState
                       const Text(
                         'Rating',
                         style: TextStyle(
-                          fontWeight: FontWeight.w700,
+                          fontWeight:
+                              FontWeight.w700,
                           fontSize: 16,
                         ),
                       ),
@@ -358,8 +396,10 @@ class _SearchFilterSheetState
                         ' - '
                         '${_ratingRange.end.toStringAsFixed(1)}',
                         style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
+                          color:
+                              AppColors.primary,
+                          fontWeight:
+                              FontWeight.w700,
                         ),
                       ),
                     ],
@@ -371,8 +411,10 @@ class _SearchFilterSheetState
                           AppColors.primary,
                       inactiveTrackColor:
                           Colors.grey.shade200,
-                      thumbColor: AppColors.primary,
-                      overlayColor: AppColors.primary
+                      thumbColor:
+                          AppColors.primary,
+                      overlayColor: AppColors
+                          .primary
                           .withOpacity(0.1),
                       rangeThumbShape:
                           const RoundRangeSliderThumbShape(
@@ -386,7 +428,8 @@ class _SearchFilterSheetState
                       divisions: 10,
                       onChanged: (values) {
                         setState(
-                          () => _ratingRange = values,
+                          () => _ratingRange =
+                              values,
                         );
                       },
                     ),
@@ -398,31 +441,37 @@ class _SearchFilterSheetState
                     children: [
                       // Min stars
                       Row(
-                        children: List.generate(
+                        children:
+                            List.generate(
                           5,
                           (i) => Icon(
                             Icons.star_rounded,
                             size: 14,
                             color: i <
-                                    _ratingRange.start
+                                    _ratingRange
+                                        .start
                                         .round()
-                                ? Colors.grey.shade300
+                                ? Colors
+                                    .grey.shade300
                                 : Colors.amber,
                           ),
                         ),
                       ),
                       // Max stars
                       Row(
-                        children: List.generate(
+                        children:
+                            List.generate(
                           5,
                           (i) => Icon(
                             Icons.star_rounded,
                             size: 14,
                             color: i <
-                                    _ratingRange.end
+                                    _ratingRange
+                                        .end
                                         .round()
                                 ? Colors.amber
-                                : Colors.grey.shade300,
+                                : Colors
+                                    .grey.shade300,
                           ),
                         ),
                       ),
@@ -432,24 +481,34 @@ class _SearchFilterSheetState
 
                   // ── Free Only ───────────
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding:
+                        const EdgeInsets.all(
+                      16,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
+                      color:
+                          Colors.grey.shade50,
                       borderRadius:
-                          BorderRadius.circular(16),
+                          BorderRadius.circular(
+                        16,
+                      ),
                       border: Border.all(
-                        color: Colors.grey.shade200,
+                        color:
+                            Colors.grey.shade200,
                       ),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          Icons.money_off_rounded,
-                          color:
-                              Colors.green.shade600,
+                          Icons
+                              .money_off_rounded,
+                          color: Colors
+                              .green.shade600,
                           size: 24,
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(
+                          width: 12,
+                        ),
                         Expanded(
                           child: Column(
                             crossAxisAlignment:
@@ -460,15 +519,18 @@ class _SearchFilterSheetState
                                 'Free Books Only',
                                 style: TextStyle(
                                   fontWeight:
-                                      FontWeight.w600,
+                                      FontWeight
+                                          .w600,
                                   fontSize: 15,
                                 ),
                               ),
                               Text(
-                                'Show only free books',
+                                'Show only'
+                                ' free books',
                                 style: TextStyle(
                                   color: Colors
-                                      .grey.shade500,
+                                      .grey
+                                      .shade500,
                                   fontSize: 12,
                                 ),
                               ),
@@ -481,7 +543,9 @@ class _SearchFilterSheetState
                               AppColors.primary,
                           onChanged: (val) {
                             setState(
-                              () => _freeOnly = val,
+                              () =>
+                                  _freeOnly =
+                                      val,
                             );
                           },
                         ),
@@ -499,7 +563,9 @@ class _SearchFilterSheetState
                 24,
                 16,
                 24,
-                MediaQuery.of(context).padding.bottom +
+                MediaQuery.of(context)
+                        .padding
+                        .bottom +
                     16,
               ),
               decoration: BoxDecoration(
@@ -509,7 +575,8 @@ class _SearchFilterSheetState
                     color: Colors.black
                         .withOpacity(0.05),
                     blurRadius: 10,
-                    offset: const Offset(0, -4),
+                    offset:
+                        const Offset(0, -4),
                   ),
                 ],
               ),
@@ -518,21 +585,27 @@ class _SearchFilterSheetState
                   // Active Filters Count Badge
                   Container(
                     padding:
-                        const EdgeInsets.symmetric(
+                        const EdgeInsets
+                            .symmetric(
                       horizontal: 16,
                       vertical: 14,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color:
+                          Colors.grey.shade100,
                       borderRadius:
-                          BorderRadius.circular(16),
+                          BorderRadius.circular(
+                        16,
+                      ),
                     ),
                     child: Text(
                       '${_getActiveFilterCount()}'
                       ' active',
                       style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade700,
+                        fontWeight:
+                            FontWeight.w600,
+                        color:
+                            Colors.grey.shade700,
                       ),
                     ),
                   ),
@@ -542,9 +615,11 @@ class _SearchFilterSheetState
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        final filters = SearchFilters(
+                        final filters =
+                            SearchFilters(
                           sortBy: _sortBy,
-                          ratingRange: _ratingRange,
+                          ratingRange:
+                              _ratingRange,
                           categories:
                               _selectedCategories,
                           freeOnly: _freeOnly,
@@ -553,23 +628,27 @@ class _SearchFilterSheetState
                             .read<SearchBloc>()
                             .add(
                               ApplyFilters(
-                                filters: filters,
+                                filters:
+                                    filters,
                               ),
                             );
                         Navigator.pop(context);
                       },
-                      style:
-                          ElevatedButton.styleFrom(
+                      style: ElevatedButton
+                          .styleFrom(
                         backgroundColor:
                             AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding:
-                            const EdgeInsets.symmetric(
+                        foregroundColor:
+                            Colors.white,
+                        padding: const EdgeInsets
+                            .symmetric(
                           vertical: 16,
                         ),
-                        shape: RoundedRectangleBorder(
+                        shape:
+                            RoundedRectangleBorder(
                           borderRadius:
-                              BorderRadius.circular(
+                              BorderRadius
+                                  .circular(
                             16,
                           ),
                         ),
@@ -577,7 +656,8 @@ class _SearchFilterSheetState
                       child: const Text(
                         'Apply Filters',
                         style: TextStyle(
-                          fontWeight: FontWeight.w700,
+                          fontWeight:
+                              FontWeight.w700,
                           fontSize: 16,
                         ),
                       ),

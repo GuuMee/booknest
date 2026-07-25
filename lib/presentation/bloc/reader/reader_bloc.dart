@@ -1,22 +1,24 @@
 // lib/presentation/bloc/reader/reader_bloc.dart
 
-import 'package:equatable/equatable.dart';         // Equatable
-import 'package:flutter/foundation.dart';           // debugPrint
-import 'package:flutter_bloc/flutter_bloc.dart';    // Bloc, Emitter
+import 'package:equatable/equatable.dart';                          // Equatable
+import 'package:flutter/foundation.dart';                           // debugPrint
+import 'package:flutter_bloc/flutter_bloc.dart';                    // Bloc, Emitter
 
 // Data - Models
-import '../../../data/models/reading_progress_model.dart';
-import '../../../data/models/bookmark_model.dart';
-import '../../../data/models/annotation_model.dart';
+import '../../../data/models/reading_progress_model.dart';          // ReadingProgressModel
+import '../../../data/models/bookmark_model.dart';                  // BookmarkModel
+import '../../../data/models/annotation_model.dart';                // AnnotationModel
+import '../../../data/models/app_settings_model.dart';              // AppSettingsModel
 
 // Domain - Repositories
-import '../../../domain/repositories/book_repository.dart';
+import '../../../domain/repositories/book_repository.dart';         // BookRepository
+import '../../../domain/repositories/settings_repository.dart';     // SettingsRepository
 
 // Core - Network
-import '../../../core/network/network_info.dart';
+import '../../../core/network/network_info.dart';                   // NetworkInfo
 
 // Services
-import '../../../services/download_service.dart';
+import '../../../services/download_service.dart';                   // DownloadService
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EVENTS
@@ -37,6 +39,26 @@ class InitReader extends ReaderEvent {
 
   @override
   List<Object?> get props => [bookId];
+}
+
+// ──────────────────────────────────────
+class NavigateToChapter extends ReaderEvent {       // ← ДОБАВЛЕНО
+  final int index;
+
+  const NavigateToChapter({required this.index});
+
+  @override
+  List<Object?> get props => [index];
+}
+
+// ──────────────────────────────────────
+class JumpToPage extends ReaderEvent {              // ← ДОБАВЛЕНО
+  final int page;
+
+  const JumpToPage({required this.page});
+
+  @override
+  List<Object?> get props => [page];
 }
 
 // ──────────────────────────────────────
@@ -101,6 +123,16 @@ class AddAnnotation extends ReaderEvent {
 }
 
 // ──────────────────────────────────────
+class UpdateReaderSettings extends ReaderEvent {    // ← ДОБАВЛЕНО
+  final AppSettingsModel settings;
+
+  const UpdateReaderSettings({required this.settings});
+
+  @override
+  List<Object?> get props => [settings];
+}
+
+// ──────────────────────────────────────
 class MarkBookComplete extends ReaderEvent {
   final String bookId;
 
@@ -134,6 +166,9 @@ class ReaderReady extends ReaderState {
   final ReadingProgressModel? progress;
   final List<BookmarkModel> bookmarks;
   final List<AnnotationModel> annotations;
+  final AppSettingsModel? settings;              // ← ДОБАВЛЕНО
+  final int currentChapter;                     // ← ДОБАВЛЕНО
+  final int currentPage;                        // ← ДОБАВЛЕНО
 
   const ReaderReady({
     required this.bookId,
@@ -141,6 +176,9 @@ class ReaderReady extends ReaderState {
     this.progress,
     required this.bookmarks,
     required this.annotations,
+    this.settings,                              // ← ДОБАВЛЕНО
+    this.currentChapter = 0,                   // ← ДОБАВЛЕНО
+    this.currentPage = 0,                      // ← ДОБАВЛЕНО
   });
 
   ReaderReady copyWith({
@@ -149,6 +187,9 @@ class ReaderReady extends ReaderState {
     ReadingProgressModel? progress,
     List<BookmarkModel>? bookmarks,
     List<AnnotationModel>? annotations,
+    AppSettingsModel? settings,                 // ← ДОБАВЛЕНО
+    int? currentChapter,                       // ← ДОБАВЛЕНО
+    int? currentPage,                          // ← ДОБАВЛЕНО
   }) {
     return ReaderReady(
       bookId: bookId ?? this.bookId,
@@ -156,6 +197,11 @@ class ReaderReady extends ReaderState {
       progress: progress ?? this.progress,
       bookmarks: bookmarks ?? this.bookmarks,
       annotations: annotations ?? this.annotations,
+      settings: settings ?? this.settings,     // ← ДОБАВЛЕНО
+      currentChapter:                          // ← ДОБАВЛЕНО
+          currentChapter ?? this.currentChapter,
+      currentPage:                             // ← ДОБАВЛЕНО
+          currentPage ?? this.currentPage,
     );
   }
 
@@ -166,6 +212,9 @@ class ReaderReady extends ReaderState {
         progress,
         bookmarks,
         annotations,
+        settings,                              // ← ДОБАВЛЕНО
+        currentChapter,                        // ← ДОБАВЛЕНО
+        currentPage,                           // ← ДОБАВЛЕНО
       ];
 }
 
@@ -233,17 +282,22 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
   final BookRepository bookRepository;
   final DownloadService downloadService;
   final NetworkInfo networkInfo;
+  final SettingsRepository settingsRepository;    // ← ДОБАВЛЕНО
 
   ReaderBloc({
     required this.bookRepository,
     required this.downloadService,
     required this.networkInfo,
+    required this.settingsRepository,             // ← ДОБАВЛЕНО
   }) : super(ReaderInitial()) {
     on<InitReader>(_onInitReader);
+    on<NavigateToChapter>(_onNavigateToChapter);  // ← ДОБАВЛЕНО
+    on<JumpToPage>(_onJumpToPage);                // ← ДОБАВЛЕНО
     on<SaveReadingProgress>(_onSaveProgress);
     on<AddBookmark>(_onAddBookmark);
     on<RemoveBookmark>(_onRemoveBookmark);
     on<AddAnnotation>(_onAddAnnotation);
+    on<UpdateReaderSettings>(_onUpdateSettings);  // ← ДОБАВЛЕНО
     on<MarkBookComplete>(_onMarkComplete);
   }
 
@@ -262,6 +316,7 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
         bookRepository.getReadingProgress(event.bookId),
         bookRepository.getBookmarks(event.bookId),
         bookRepository.getAnnotations(event.bookId),
+        settingsRepository.getSettings(),         // ← ДОБАВЛЕНО
       ]);
 
       emit(ReaderReady(
@@ -269,12 +324,44 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
         localPdfPath: results[0] as String?,
         progress: results[1] as ReadingProgressModel?,
         bookmarks: results[2] as List<BookmarkModel>,
-        annotations:
-            results[3] as List<AnnotationModel>,
+        annotations: results[3] as List<AnnotationModel>,
+        settings: results[4] as AppSettingsModel?, // ← ДОБАВЛЕНО
+        currentChapter:                            // ← ДОБАВЛЕНО
+            (results[1] as ReadingProgressModel?)
+                ?.currentChapter ?? 0,
+        currentPage:                               // ← ДОБАВЛЕНО
+            (results[1] as ReadingProgressModel?)
+                ?.currentPage ?? 0,
       ));
     } catch (e) {
       emit(ReaderError(message: e.toString()));
     }
+  }
+
+  // ─────────────────────────────────────────
+  // NAVIGATE TO CHAPTER                       // ← ДОБАВЛЕНО
+  // ─────────────────────────────────────────
+
+  Future<void> _onNavigateToChapter(
+    NavigateToChapter event,
+    Emitter<ReaderState> emit,
+  ) async {
+    if (state is! ReaderReady) return;
+    final current = state as ReaderReady;
+    emit(current.copyWith(currentChapter: event.index));
+  }
+
+  // ─────────────────────────────────────────
+  // JUMP TO PAGE                              // ← ДОБАВЛЕНО
+  // ─────────────────────────────────────────
+
+  Future<void> _onJumpToPage(
+    JumpToPage event,
+    Emitter<ReaderState> emit,
+  ) async {
+    if (state is! ReaderReady) return;
+    final current = state as ReaderReady;
+    emit(current.copyWith(currentPage: event.page));
   }
 
   // ─────────────────────────────────────────
@@ -306,18 +393,17 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
                 DateTime.now())
             : DateTime.now(),
         isCompleted: isCompleted,
-        completedAt:
-            isCompleted ? DateTime.now() : null,
+        completedAt: isCompleted ? DateTime.now() : null,
       );
 
-      await bookRepository.saveReadingProgress(
-        progress,
-      );
+      await bookRepository.saveReadingProgress(progress);
 
       if (state is ReaderReady) {
         emit(
-          (state as ReaderReady)
-              .copyWith(progress: progress),
+          (state as ReaderReady).copyWith(
+            progress: progress,
+            currentPage: event.currentPage,       // ← ДОБАВЛЕНО
+          ),
         );
       }
 
@@ -359,11 +445,7 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
             (a, b) =>
                 a.pageNumber.compareTo(b.pageNumber),
           );
-        emit(
-          current.copyWith(
-            bookmarks: updatedBookmarks,
-          ),
-        );
+        emit(current.copyWith(bookmarks: updatedBookmarks));
       }
     } catch (e) {
       debugPrint('Error adding bookmark: $e');
@@ -375,20 +457,14 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
     Emitter<ReaderState> emit,
   ) async {
     try {
-      await bookRepository.removeBookmark(
-        event.bookmarkId,
-      );
+      await bookRepository.removeBookmark(event.bookmarkId);
 
       if (state is ReaderReady) {
         final current = state as ReaderReady;
         final updatedBookmarks = current.bookmarks
             .where((b) => b.id != event.bookmarkId)
             .toList();
-        emit(
-          current.copyWith(
-            bookmarks: updatedBookmarks,
-          ),
-        );
+        emit(current.copyWith(bookmarks: updatedBookmarks));
       }
     } catch (e) {
       debugPrint('Error removing bookmark: $e');
@@ -415,14 +491,32 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
           ...current.annotations,
           event.annotation,
         ];
-        emit(
-          current.copyWith(
-            annotations: updatedAnnotations,
-          ),
-        );
+        emit(current.copyWith(annotations: updatedAnnotations));
       }
     } catch (e) {
       debugPrint('Error adding annotation: $e');
+    }
+  }
+
+  // ─────────────────────────────────────────
+  // UPDATE SETTINGS                           // ← ДОБАВЛЕНО
+  // ─────────────────────────────────────────
+
+  Future<void> _onUpdateSettings(
+    UpdateReaderSettings event,
+    Emitter<ReaderState> emit,
+  ) async {
+    try {
+      await settingsRepository.saveSettings(event.settings);
+
+      if (state is ReaderReady) {
+        emit(
+          (state as ReaderReady)
+              .copyWith(settings: event.settings),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error updating settings: $e');
     }
   }
 
@@ -444,17 +538,13 @@ class ReaderBloc extends Bloc<ReaderEvent, ReaderState> {
             stats: BookCompletionStats(
               bookId: event.bookId,
               totalSecondsRead:
-                  current.progress?.totalSecondsRead ??
-                      0,
+                  current.progress?.totalSecondsRead ?? 0,
               totalPages:
                   current.progress?.totalPages ?? 0,
-              bookmarksCount:
-                  current.bookmarks.length,
-              annotationsCount:
-                  current.annotations.length,
+              bookmarksCount: current.bookmarks.length,
+              annotationsCount: current.annotations.length,
               startedAt:
-                  current.progress?.startedAt ??
-                      DateTime.now(),
+                  current.progress?.startedAt ?? DateTime.now(),
               completedAt: DateTime.now(),
             ),
           ),

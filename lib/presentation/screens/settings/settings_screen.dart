@@ -1,712 +1,629 @@
 // lib/presentation/screens/settings/settings_screen.dart
 
-import 'dart:io';                                    // Directory, File
-
-import 'package:flutter/foundation.dart';            // kDebugMode
-import 'package:flutter/material.dart';              // StatefulWidget, Widget, etc.
-import 'package:flutter_bloc/flutter_bloc.dart';     // BlocBuilder, context.read<>()
-import 'package:flutter_cache_manager/flutter_cache_manager.dart'; // DefaultCacheManager
-import 'package:go_router/go_router.dart';           // context.push(), context.go()
-import 'package:hive/hive.dart';                     // Hive.box()
-import 'package:path_provider/path_provider.dart';   // getTemporaryDirectory, getApplicationDocumentsDirectory
-import 'package:share_plus/share_plus.dart';         // Share.shareXFiles, XFile
+import 'package:flutter/material.dart';                           // StatelessWidget
+                                                                  // StatefulWidget
+                                                                  // Widget, BuildContext
+                                                                  // Scaffold, AppBar
+                                                                  // ListView, Column, Row
+                                                                  // Container, Padding
+                                                                  // SizedBox, Divider
+                                                                  // Text, TextStyle
+                                                                  // TextField, InputDecoration
+                                                                  // ElevatedButton, TextButton
+                                                                  // IconButton, Switch
+                                                                  // ListTile, AlertDialog
+                                                                  // Slider, GestureDetector
+                                                                  // Icon, Icons, Colors
+                                                                  // CircularProgressIndicator
+                                                                  // ScaffoldMessenger
+                                                                  // SnackBar, Navigator
+                                                                  // showModalBottomSheet
+                                                                  // showDialog, showTimePicker
+                                                                  // StatefulBuilder
+                                                                  // TimeOfDay, DayPeriod
+                                                                  // Theme, ColorScheme
+                                                                  // VoidCallback
+                                                                  // BoxDecoration, BoxShadow
+                                                                  // BorderRadius, Border
+                                                                  // BoxShape, Offset
+import 'package:flutter_bloc/flutter_bloc.dart';                  // BlocBuilder
+                                                                  // context.read
+import 'package:go_router/go_router.dart';                        // context.push
+import 'package:url_launcher/url_launcher.dart';                  // canLaunchUrl
+                                                                  // launchUrl
+                                                                  // LaunchMode
 
 // Presentation - BLoC - Auth
-import '../../bloc/auth/auth_bloc.dart';
-import '../../bloc/auth/auth_event.dart';            // DeleteAccountRequested
+import '../../blocs/auth/auth_bloc.dart';                         // AuthBloc
+                                                                  // SignOutRequested
+                                                                  // DeleteAccountRequested
+                                                                  // ChangePasswordRequested
 
-// Presentation - BLoC - Profile
-import '../../bloc/profile/profile_bloc.dart';
-import '../../bloc/profile/profile_state.dart';      // ProfileLoaded
+// Presentation - BLoC - Settings
+import '../../blocs/settings/settings_bloc.dart';                 // SettingsBloc
+                                                                  // SettingsState
+                                                                  // SettingsLoaded
+                                                                  // UpdateSettings
+                                                                  // SyncData
+                                                                  // ClearCache
 
-// Services
-import '../../../services/download_service.dart';    // DownloadService
-import '../../../services/notification_service.dart'; // NotificationService
+// Data - Models
+import '../../../data/models/app_settings.dart';                  // AppSettings
 
 // Core - Theme
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_colors.dart';                     // AppColors
+
+// Core - Extensions
+import '../../../core/extensions/string_extensions.dart';         // capitalize()
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SCREEN
+// SCREEN — SettingsScreen
 // ─────────────────────────────────────────────────────────────────────────────
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
-
-  @override
-  State<SettingsScreen> createState() =>
-      _SettingsScreenState();
-}
-
-class _SettingsScreenState
-    extends State<SettingsScreen> {
-  // ─────────────────────────────────────────
-  // STATE
-  // ─────────────────────────────────────────
-
-  bool _notificationsEnabled = true;
-  bool _dailyReminder = true;
-  bool _autoDownload = false;
-  bool _wifiOnly = true;
-  String _readingGoal = '30';
-  String _theme = 'system';
-  String _downloadQuality = 'standard';
-
-  // ─────────────────────────────────────────
-  // LIFECYCLE
-  // ─────────────────────────────────────────
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSettings();
-  }
-
-  // ─────────────────────────────────────────
-  // SETTINGS PERSISTENCE
-  // ─────────────────────────────────────────
-
-  Future<void> _loadSettings() async {
-    final box = Hive.box('settings');
-    setState(() {
-      _notificationsEnabled = box.get(
-        'notificationsEnabled',
-        defaultValue: true,
-      );
-      _dailyReminder = box.get(
-        'dailyReminder',
-        defaultValue: true,
-      );
-      _autoDownload = box.get(
-        'autoDownload',
-        defaultValue: false,
-      );
-      _wifiOnly = box.get(
-        'wifiOnly',
-        defaultValue: true,
-      );
-      _readingGoal = box.get(
-        'readingGoal',
-        defaultValue: '30',
-      );
-      _theme = box.get(
-        'theme',
-        defaultValue: 'system',
-      );
-      _downloadQuality = box.get(
-        'downloadQuality',
-        defaultValue: 'standard',
-      );
-    });
-  }
-
-  Future<void> _saveSetting(
-    String key,
-    dynamic value,
-  ) async {
-    await Hive.box('settings').put(key, value);
-  }
-
-  // ─────────────────────────────────────────
-  // BUILD
-  // ─────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text(
           'Settings',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
-        centerTitle: true,
+        backgroundColor: Colors.white,
         elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
+        centerTitle: true,
       ),
-      body: ListView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(20),
-        children: [
-          // ── Reading ──────────────────────
-          _buildSectionTitle('Reading'),
-          const SizedBox(height: 12),
-          _buildSettingsCard([
-            _buildSettingTile(
-              icon: Icons.flag_rounded,
-              iconColor: Colors.green,
-              title: 'Daily Reading Goal',
-              subtitle: '$_readingGoal minutes',
-              onTap: _showReadingGoalPicker,
-            ),
-            _buildDivider(),
-            _buildSettingTile(
-              icon: Icons.palette_rounded,
-              iconColor: Colors.purple,
-              title: 'Reader Theme',
-              subtitle: _theme == 'system'
-                  ? 'Follow System'
-                  : _theme == 'light'
-                      ? 'Light'
-                      : 'Dark',
-              onTap: _showThemePicker,
-            ),
-          ]),
-          const SizedBox(height: 28),
+      body: BlocBuilder<SettingsBloc, SettingsState>(
+        builder: (context, state) {
+          if (state is! SettingsLoaded) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          // ── Notifications ────────────────
-          _buildSectionTitle('Notifications'),
-          const SizedBox(height: 12),
-          _buildSettingsCard([
-            _buildSwitchTile(
-              icon: Icons.notifications_rounded,
-              iconColor: Colors.blue,
-              title: 'Push Notifications',
-              subtitle: 'New books, recommendations',
-              value: _notificationsEnabled,
-              onChanged: (val) {
-                setState(
-                  () => _notificationsEnabled = val,
-                );
-                _saveSetting(
-                  'notificationsEnabled',
-                  val,
-                );
-              },
-            ),
-            _buildDivider(),
-            _buildSwitchTile(
-              icon: Icons.schedule_rounded,
-              iconColor: Colors.orange,
-              title: 'Daily Reading Reminder',
-              subtitle:
-                  'Get reminded to read every day',
-              value: _dailyReminder,
-              onChanged: (val) {
-                setState(() => _dailyReminder = val);
-                _saveSetting('dailyReminder', val);
-                if (val) _showReminderTimePicker();
-              },
-            ),
-          ]),
-          const SizedBox(height: 28),
+          final settings = state.settings;
 
-          // ── Downloads ────────────────────
-          _buildSectionTitle('Downloads'),
-          const SizedBox(height: 12),
-          _buildSettingsCard([
-            _buildSwitchTile(
-              icon: Icons.download_rounded,
-              iconColor: Colors.teal,
-              title: 'Auto-Download',
-              subtitle:
-                  'Download books when added to library',
-              value: _autoDownload,
-              onChanged: (val) {
-                setState(() => _autoDownload = val);
-                _saveSetting('autoDownload', val);
-              },
-            ),
-            _buildDivider(),
-            _buildSwitchTile(
-              icon: Icons.wifi_rounded,
-              iconColor: Colors.indigo,
-              title: 'Wi-Fi Only',
-              subtitle: 'Download only on Wi-Fi',
-              value: _wifiOnly,
-              onChanged: (val) {
-                setState(() => _wifiOnly = val);
-                _saveSetting('wifiOnly', val);
-              },
-            ),
-            _buildDivider(),
-            _buildSettingTile(
-              icon: Icons.high_quality_rounded,
-              iconColor: Colors.deepOrange,
-              title: 'Download Quality',
-              subtitle: _downloadQuality == 'standard'
-                  ? 'Standard (smaller files)'
-                  : 'High (larger files)',
-              onTap: _showQualityPicker,
-            ),
-            _buildDivider(),
-            BlocBuilder<ProfileBloc, ProfileState>(
-              builder: (context, state) {
-                return _buildSettingTile(
-                  icon: Icons.folder_rounded,
-                  iconColor: Colors.brown,
-                  title: 'Storage Used',
-                  subtitle: state is ProfileLoaded
-                      ? state.storageUsed
-                      : 'Calculating...',
-                  onTap: _showStorageDialog,
-                );
-              },
-            ),
-          ]),
-          const SizedBox(height: 28),
-
-          // ── Account ──────────────────────
-          _buildSectionTitle('Account'),
-          const SizedBox(height: 12),
-          _buildSettingsCard([
-            _buildSettingTile(
-              icon: Icons.person_rounded,
-              iconColor: Colors.blue,
-              title: 'Edit Profile',
-              onTap: () =>
-                  context.push('/edit-profile'),
-            ),
-            _buildDivider(),
-            _buildSettingTile(
-              icon: Icons.lock_rounded,
-              iconColor: Colors.grey,
-              title: 'Change Password',
-              onTap: () =>
-                  context.push('/change-password'),
-            ),
-            _buildDivider(),
-            _buildSettingTile(
-              icon: Icons.language_rounded,
-              iconColor: Colors.cyan,
-              title: 'Language',
-              subtitle: 'English',
-              onTap: _showLanguagePicker,
-            ),
-          ]),
-          const SizedBox(height: 28),
-
-          // ── Data ─────────────────────────
-          _buildSectionTitle('Data'),
-          const SizedBox(height: 12),
-          _buildSettingsCard([
-            _buildSettingTile(
-              icon: Icons.cloud_download_rounded,
-              iconColor: Colors.blue,
-              title: 'Export Data',
-              subtitle: 'Download your reading data',
-              onTap: _exportData,
-            ),
-            _buildDivider(),
-            _buildSettingTile(
-              icon: Icons.cached_rounded,
-              iconColor: Colors.amber,
-              title: 'Clear Cache',
-              subtitle: 'Free up storage space',
-              onTap: _showClearCacheDialog,
-            ),
-            _buildDivider(),
-            _buildSettingTile(
-              icon: Icons.delete_forever_rounded,
-              iconColor: Colors.red,
-              title: 'Delete Account',
-              subtitle:
-                  'Permanently remove your account',
-              onTap: _showDeleteAccountDialog,
-              titleColor: Colors.red,
-            ),
-          ]),
-          const SizedBox(height: 28),
-
-          // ── Developer (debug only) ───────
-          if (kDebugMode) ...[
-            _buildSectionTitle('Developer'),
-            const SizedBox(height: 12),
-            _buildSettingsCard([
-              _buildSettingTile(
-                icon: Icons.bug_report_rounded,
-                iconColor: Colors.red,
-                title: 'Debug Console',
-                onTap: () =>
-                    context.push('/debug'),
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            physics: const BouncingScrollPhysics(),
+            children: [
+              // ===== READING PREFERENCES =====
+              _SettingsSection(
+                title: 'Reading Preferences',
+                children: [
+                  _SettingsTile(
+                    icon: Icons.text_fields_rounded,
+                    iconColor: Colors.blue,
+                    title: 'Font Size',
+                    subtitle: '${settings.fontSize.toInt()} pt',
+                    onTap: () =>
+                        _showFontSizePicker(context, settings),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.format_line_spacing_rounded,
+                    iconColor: Colors.green,
+                    title: 'Line Spacing',
+                    subtitle: '${settings.lineSpacing}x',
+                    onTap: () =>
+                        _showLineSpacingPicker(context, settings),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.brightness_6_rounded,
+                    iconColor: Colors.orange,
+                    title: 'Reading Theme',
+                    subtitle: settings.readingTheme.capitalize(),
+                    onTap: () =>
+                        _showThemePicker(context, settings),
+                  ),
+                  _SwitchTile(
+                    icon: Icons.screen_lock_portrait_rounded,
+                    iconColor: Colors.purple,
+                    title: 'Keep Screen On',
+                    subtitle:
+                        'Prevent screen from turning off while reading',
+                    value: settings.keepScreenOn,
+                    onChanged: (value) {
+                      context.read<SettingsBloc>().add(
+                            UpdateSettings(
+                              settings: settings.copyWith(
+                                  keepScreenOn: value),
+                            ),
+                          );
+                    },
+                  ),
+                  _SwitchTile(
+                    icon: Icons.swipe_rounded,
+                    iconColor: Colors.teal,
+                    title: 'Tap to Turn Pages',
+                    subtitle: 'Tap edges instead of swiping',
+                    value: settings.tapToTurnPages,
+                    onChanged: (value) {
+                      context.read<SettingsBloc>().add(
+                            UpdateSettings(
+                              settings: settings.copyWith(
+                                  tapToTurnPages: value),
+                            ),
+                          );
+                    },
+                  ),
+                  _SwitchTile(
+                    icon: Icons.volume_up_rounded,
+                    iconColor: Colors.indigo,
+                    title: 'Volume Button Page Turn',
+                    subtitle: 'Use volume buttons to turn pages',
+                    value: settings.volumeButtonPageTurn,
+                    onChanged: (value) {
+                      context.read<SettingsBloc>().add(
+                            UpdateSettings(
+                              settings: settings.copyWith(
+                                volumeButtonPageTurn: value,
+                              ),
+                            ),
+                          );
+                    },
+                  ),
+                ],
               ),
-              _buildDivider(),
-              _buildSettingTile(
-                icon: Icons.refresh_rounded,
-                iconColor: Colors.green,
-                title: 'Reset Onboarding',
-                onTap: () async {
-                  final box = Hive.box('settings');
-                  await box.put(
-                    'hasSeenOnboarding',
-                    false,
-                  );
-                  if (mounted) {
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Onboarding reset',
-                        ),
-                      ),
-                    );
-                  }
-                },
-              ),
-            ]),
-            const SizedBox(height: 28),
-          ],
+              const SizedBox(height: 20),
 
-          const SizedBox(height: 60),
-        ],
+              // ===== GOALS & TRACKING =====
+              _SettingsSection(
+                title: 'Goals & Tracking',
+                children: [
+                  _SettingsTile(
+                    icon: Icons.flag_rounded,
+                    iconColor: Colors.red,
+                    title: 'Daily Reading Goal',
+                    subtitle:
+                        '${settings.dailyGoalMinutes} minutes per day',
+                    onTap: () =>
+                        _showDailyGoalPicker(context, settings),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.auto_stories_rounded,
+                    iconColor: Colors.amber.shade700,
+                    title: 'Yearly Reading Goal',
+                    subtitle:
+                        '${settings.yearlyBookGoal} books per year',
+                    onTap: () =>
+                        _showYearlyGoalPicker(context, settings),
+                  ),
+                  _SwitchTile(
+                    icon: Icons.notifications_rounded,
+                    iconColor: Colors.pink,
+                    title: 'Reading Reminders',
+                    subtitle: 'Get reminded to read daily',
+                    value: settings.readingReminders,
+                    onChanged: (value) {
+                      context.read<SettingsBloc>().add(
+                            UpdateSettings(
+                              settings: settings.copyWith(
+                                readingReminders: value,
+                              ),
+                            ),
+                          );
+                    },
+                  ),
+                  if (settings.readingReminders)
+                    _SettingsTile(
+                      icon: Icons.access_time_rounded,
+                      iconColor: Colors.cyan,
+                      title: 'Reminder Time',
+                      subtitle:
+                          _formatTimeOfDay(settings.reminderTime),
+                      onTap: () =>
+                          _showTimePicker(context, settings),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // ===== APPEARANCE =====
+              _SettingsSection(
+                title: 'Appearance',
+                children: [
+                  _SettingsTile(
+                    icon: Icons.dark_mode_rounded,
+                    iconColor: Colors.deepPurple,
+                    title: 'App Theme',
+                    subtitle: settings.appTheme.capitalize(),
+                    onTap: () =>
+                        _showAppThemePicker(context, settings),
+                  ),
+                  _SwitchTile(
+                    icon: Icons.animation_rounded,
+                    iconColor: Colors.lightBlue,
+                    title: 'Animations',
+                    subtitle: 'Enable page turn animations',
+                    value: settings.enableAnimations,
+                    onChanged: (value) {
+                      context.read<SettingsBloc>().add(
+                            UpdateSettings(
+                              settings: settings.copyWith(
+                                enableAnimations: value,
+                              ),
+                            ),
+                          );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // ===== STORAGE & DATA =====
+              _SettingsSection(
+                title: 'Storage & Data',
+                children: [
+                  _SwitchTile(
+                    icon: Icons.wifi_off_rounded,
+                    iconColor: Colors.grey.shade700,
+                    title: 'Download on Wi-Fi Only',
+                    subtitle:
+                        'Save mobile data when downloading books',
+                    value: settings.downloadOnWifiOnly,
+                    onChanged: (value) {
+                      context.read<SettingsBloc>().add(
+                            UpdateSettings(
+                              settings: settings.copyWith(
+                                downloadOnWifiOnly: value,
+                              ),
+                            ),
+                          );
+                    },
+                  ),
+                  _SettingsTile(
+                    icon: Icons.storage_rounded,
+                    iconColor: Colors.brown,
+                    title: 'Storage Usage',
+                    subtitle: 'Manage downloaded books',
+                    onTap: () => context.push('/storage'),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.delete_sweep_rounded,
+                    iconColor: Colors.red.shade400,
+                    title: 'Clear Cache',
+                    subtitle:
+                        'Free up space by clearing cached data',
+                    onTap: () => _showClearCacheDialog(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // ===== ACCOUNT =====
+              _SettingsSection(
+                title: 'Account',
+                children: [
+                  _SettingsTile(
+                    icon: Icons.person_rounded,
+                    iconColor: Colors.blue,
+                    title: 'Edit Profile',
+                    subtitle: 'Name, photo, bio',
+                    onTap: () => context.push('/edit-profile'),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.lock_rounded,
+                    iconColor: Colors.green,
+                    title: 'Change Password',
+                    onTap: () =>
+                        _showChangePasswordSheet(context),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.cloud_sync_rounded,
+                    iconColor: Colors.indigo,
+                    title: 'Sync Data',
+                    subtitle:
+                        'Last synced: ${_formatLastSync(settings.lastSyncTime)}',
+                    onTap: () {
+                      context
+                          .read<SettingsBloc>()
+                          .add(SyncData());
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // ===== ABOUT =====
+              _SettingsSection(
+                title: 'About',
+                children: [
+                  _SettingsTile(
+                    icon: Icons.info_outline_rounded,
+                    iconColor: Colors.blue,
+                    title: 'About',
+                    subtitle: 'Version 1.0.0',
+                    onTap: () => _showAboutDialog(context),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.privacy_tip_outlined,
+                    iconColor: Colors.teal,
+                    title: 'Privacy Policy',
+                    onTap: () => _launchUrl(
+                        'https://example.com/privacy'),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.description_outlined,
+                    iconColor: Colors.orange,
+                    title: 'Terms of Service',
+                    onTap: () =>
+                        _launchUrl('https://example.com/terms'),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.mail_outline_rounded,
+                    iconColor: Colors.purple,
+                    title: 'Contact Support',
+                    onTap: () => _launchUrl(
+                        'mailto:support@example.com'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // ===== DANGER ZONE =====
+              _SettingsSection(
+                title: 'Danger Zone',
+                titleColor: Colors.red,
+                children: [
+                  _SettingsTile(
+                    icon: Icons.logout_rounded,
+                    iconColor: Colors.orange,
+                    title: 'Sign Out',
+                    onTap: () => _showSignOutDialog(context),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.delete_forever_rounded,
+                    iconColor: Colors.red,
+                    title: 'Delete Account',
+                    subtitle: 'This action cannot be undone',
+                    titleColor: Colors.red,
+                    onTap: () =>
+                        _showDeleteAccountDialog(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 100),
+            ],
+          );
+        },
       ),
     );
   }
 
   // ─────────────────────────────────────────
-  // REUSABLE BUILDERS
+  // HELPER METHODS
   // ─────────────────────────────────────────
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w800,
-        color: Colors.grey.shade800,
-      ),
-    );
+  String _formatTimeOfDay(TimeOfDay time) {
+    final hour =
+        time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final minute =
+        time.minute.toString().padLeft(2, '0');
+    final period =
+        time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
   }
 
-  Widget _buildSettingsCard(
-    List<Widget> children,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(children: children),
-    );
-  }
-
-  Widget _buildSettingTile({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    String? subtitle,
-    required VoidCallback onTap,
-    Color? titleColor,
-  }) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding:
-          const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 4,
-      ),
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: iconColor.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child:
-            Icon(icon, color: iconColor, size: 22),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 15,
-          color: titleColor,
-        ),
-      ),
-      subtitle: subtitle != null
-          ? Text(
-              subtitle,
-              style: TextStyle(
-                color: Colors.grey.shade500,
-                fontSize: 12,
-              ),
-            )
-          : null,
-      trailing: Icon(
-        Icons.chevron_right_rounded,
-        color: Colors.grey.shade400,
-      ),
-    );
-  }
-
-  Widget _buildSwitchTile({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    String? subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 4,
-      ),
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: iconColor.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child:
-            Icon(icon, color: iconColor, size: 22),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 15,
-        ),
-      ),
-      subtitle: subtitle != null
-          ? Text(
-              subtitle,
-              style: TextStyle(
-                color: Colors.grey.shade500,
-                fontSize: 12,
-              ),
-            )
-          : null,
-      trailing: Switch.adaptive(
-        value: value,
-        activeColor: AppColors.primary,
-        onChanged: onChanged,
-      ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return Divider(
-      height: 1,
-      indent: 76,
-      endIndent: 20,
-      color: Colors.grey.shade100,
-    );
+  String _formatLastSync(DateTime? lastSync) {
+    if (lastSync == null) return 'Never';
+    final diff = DateTime.now().difference(lastSync);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 
   // ─────────────────────────────────────────
-  // BOTTOM SHEETS
+  // FONT SIZE PICKER
   // ─────────────────────────────────────────
 
-  void _showReadingGoalPicker() {
-    final goals = [
-      '15',
-      '20',
-      '30',
-      '45',
-      '60',
-      '90',
-      '120',
-    ];
+  void _showFontSizePicker(
+      BuildContext context, AppSettings settings) {
+    double fontSize = settings.fontSize;
 
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Font Size',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Preview
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(16),
+                      border:
+                          Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Text(
+                      'The quick brown fox jumps over the lazy dog. '
+                      'This is how your reading text will appear.',
+                      style: TextStyle(
+                        fontSize: fontSize,
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Slider
+                  Row(
+                    children: [
+                      const Text(
+                        'A',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Expanded(
+                        child: Slider(
+                          value: fontSize,
+                          min: 12,
+                          max: 32,
+                          divisions: 20,
+                          activeColor: AppColors.primary,
+                          label: '${fontSize.round()} pt',
+                          onChanged: (value) {
+                            setSheetState(
+                                () => fontSize = value);
+                          },
+                        ),
+                      ),
+                      const Text(
+                        'A',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Apply button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        context.read<SettingsBloc>().add(
+                              UpdateSettings(
+                                settings: settings.copyWith(
+                                    fontSize: fontSize),
+                              ),
+                            );
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Apply',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // LINE SPACING PICKER
+  // ─────────────────────────────────────────
+
+  void _showLineSpacingPicker(
+      BuildContext context, AppSettings settings) {
+    final options = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Handle
               Center(
                 child: Container(
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
                     color: Colors.grey.shade300,
-                    borderRadius:
-                        BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-
               const Text(
-                'Daily Reading Goal',
+                'Line Spacing',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Set how many minutes you want'
-                ' to read each day',
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: goals.map((goal) {
-                  final isSelected =
-                      _readingGoal == goal;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(
-                        () => _readingGoal = goal,
-                      );
-                      _saveSetting(
-                        'readingGoal',
-                        goal,
-                      );
-                      Navigator.pop(context);
-                    },
-                    child: Container(
-                      width: 80,
-                      padding:
-                          const EdgeInsets.symmetric(
-                        vertical: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.primary
-                            : Colors.grey.shade100,
-                        borderRadius:
-                            BorderRadius.circular(16),
-                        border: isSelected
-                            ? null
-                            : Border.all(
-                                color: Colors
-                                    .grey.shade200,
-                              ),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            goal,
-                            style: TextStyle(
-                              color: isSelected
-                                  ? Colors.white
-                                  : Colors.black87,
-                              fontWeight:
-                                  FontWeight.w800,
-                              fontSize: 20,
-                            ),
-                          ),
-                          Text(
-                            'min',
-                            style: TextStyle(
-                              color: isSelected
-                                  ? Colors.white70
-                                  : Colors
-                                      .grey.shade500,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-
-              SizedBox(
-                height: MediaQuery.of(context)
-                        .padding
-                        .bottom +
-                    16,
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // ──────────────────────────────────────────
-
-  void _showThemePicker() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius:
-                      BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Reader Theme',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              ...[
-                {
-                  'id': 'system',
-                  'label': 'Follow System',
-                  'icon': Icons.brightness_auto,
-                },
-                {
-                  'id': 'light',
-                  'label': 'Light',
-                  'icon': Icons.light_mode,
-                },
-                {
-                  'id': 'dark',
-                  'label': 'Dark',
-                  'icon': Icons.dark_mode,
-                },
-              ].map((option) {
+              const SizedBox(height: 16),
+              ...options.map((option) {
                 final isSelected =
-                    _theme == option['id'];
+                    settings.lineSpacing == option;
                 return ListTile(
                   onTap: () {
-                    setState(
-                      () => _theme =
-                          option['id'] as String,
-                    );
-                    _saveSetting(
-                      'theme',
-                      option['id'],
-                    );
+                    context.read<SettingsBloc>().add(
+                          UpdateSettings(
+                            settings: settings.copyWith(
+                                lineSpacing: option),
+                          ),
+                        );
                     Navigator.pop(context);
                   },
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  tileColor: isSelected
+                      ? AppColors.primary.withOpacity(0.1)
+                      : null,
                   leading: Icon(
-                    option['icon'] as IconData,
+                    Icons.format_line_spacing_rounded,
                     color: isSelected
                         ? AppColors.primary
-                        : Colors.grey,
+                        : Colors.grey.shade400,
                   ),
                   title: Text(
-                    option['label'] as String,
+                    '${option}x',
                     style: TextStyle(
                       fontWeight: isSelected
                           ? FontWeight.w700
@@ -718,23 +635,13 @@ class _SettingsScreenState
                   ),
                   trailing: isSelected
                       ? Icon(
-                          Icons.check_circle,
+                          Icons.check_circle_rounded,
                           color: AppColors.primary,
                         )
                       : null,
-                  shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(12),
-                  ),
                 );
               }),
-
-              SizedBox(
-                height: MediaQuery.of(context)
-                        .padding
-                        .bottom +
-                    16,
-              ),
+              const SizedBox(height: 8),
             ],
           ),
         );
@@ -742,71 +649,558 @@ class _SettingsScreenState
     );
   }
 
-  // ──────────────────────────────────────────
+  // ─────────────────────────────────────────
+  // READING THEME PICKER
+  // ─────────────────────────────────────────
 
-  void _showQualityPicker() {
+  void _showThemePicker(
+      BuildContext context, AppSettings settings) {
+    final themes = [
+      {
+        'id': 'light',
+        'name': 'Light',
+        'bg': Colors.white,
+        'text': Colors.black87,
+        'icon': Icons.wb_sunny_rounded,
+      },
+      {
+        'id': 'sepia',
+        'name': 'Sepia',
+        'bg': const Color(0xFFF5E6C8),
+        'text': const Color(0xFF5B4636),
+        'icon': Icons.auto_awesome_rounded,
+      },
+      {
+        'id': 'dark',
+        'name': 'Dark',
+        'bg': const Color(0xFF1E1E1E),
+        'text': const Color(0xFFE0E0E0),
+        'icon': Icons.dark_mode_rounded,
+      },
+      {
+        'id': 'amoled',
+        'name': 'AMOLED',
+        'bg': Colors.black,
+        'text': Colors.white,
+        'icon': Icons.brightness_1_rounded,
+      },
+    ];
+
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius:
-                      BorderRadius.circular(2),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
               const Text(
-                'Download Quality',
+                'Reading Theme',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 20),
+              Row(
+                children: themes.map((theme) {
+                  final isSelected =
+                      settings.readingTheme == theme['id'];
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        context.read<SettingsBloc>().add(
+                              UpdateSettings(
+                                settings: settings.copyWith(
+                                  readingTheme:
+                                      theme['id'] as String,
+                                ),
+                              ),
+                            );
+                        Navigator.pop(context);
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 4),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: theme['bg'] as Color,
+                          borderRadius:
+                              BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.grey.shade200,
+                            width: isSelected ? 2.5 : 1,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              theme['icon'] as IconData,
+                              color: theme['text'] as Color,
+                              size: 28,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Abc',
+                              style: TextStyle(
+                                color: theme['text'] as Color,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              theme['name'] as String,
+                              style: TextStyle(
+                                color: theme['text'] as Color,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
-              ...[
-                {
-                  'id': 'standard',
-                  'label': 'Standard',
-                  'subtitle':
-                      'Smaller file size, good quality',
-                },
-                {
-                  'id': 'high',
-                  'label': 'High',
-                  'subtitle':
-                      'Larger files, best quality',
-                },
-              ].map((option) {
-                final isSelected =
-                    _downloadQuality == option['id'];
+  // ─────────────────────────────────────────
+  // DAILY GOAL PICKER
+  // ─────────────────────────────────────────
+
+  void _showDailyGoalPicker(
+      BuildContext context, AppSettings settings) {
+    int goal = settings.dailyGoalMinutes;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Daily Reading Goal',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'How many minutes do you want to read each day?',
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  Text(
+                    '$goal',
+                    style: TextStyle(
+                      fontSize: 56,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  Text(
+                    'minutes per day',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Slider(
+                    value: goal.toDouble(),
+                    min: 5,
+                    max: 120,
+                    divisions: 23,
+                    activeColor: AppColors.primary,
+                    label: '$goal min',
+                    onChanged: (value) {
+                      setSheetState(
+                          () => goal = value.round());
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment:
+                        MainAxisAlignment.spaceEvenly,
+                    children:
+                        [15, 30, 45, 60, 90].map((minutes) {
+                      final isSelected = goal == minutes;
+                      return GestureDetector(
+                        onTap: () {
+                          setSheetState(() => goal = minutes);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.grey.shade100,
+                            borderRadius:
+                                BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${minutes}m',
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.grey.shade700,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        context.read<SettingsBloc>().add(
+                              UpdateSettings(
+                                settings: settings.copyWith(
+                                  dailyGoalMinutes: goal,
+                                ),
+                              ),
+                            );
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Save Goal',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // YEARLY GOAL PICKER
+  // ─────────────────────────────────────────
+
+    void _showYearlyGoalPicker(
+      BuildContext context, AppSettings settings) {
+    int goal = settings.yearlyBookGoal;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Yearly Reading Goal',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Minus button
+                      _CircleButton(
+                        icon: Icons.remove,
+                        onTap: () {
+                          if (goal > 1) {
+                            setSheetState(() => goal--);
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 30),
+                      Column(
+                        children: [
+                          Text(
+                            '$goal',
+                            style: TextStyle(
+                              fontSize: 56,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          Text(
+                            'books this year',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 30),
+                      // Plus button
+                      _CircleButton(
+                        icon: Icons.add,
+                        onTap: () {
+                          setSheetState(() => goal++);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  // Quick picks
+                  Row(
+                    mainAxisAlignment:
+                        MainAxisAlignment.spaceEvenly,
+                    children:
+                        [6, 12, 24, 52, 100].map((count) {
+                      final isSelected = goal == count;
+                      return GestureDetector(
+                        onTap: () {
+                          setSheetState(() => goal = count);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.grey.shade100,
+                            borderRadius:
+                                BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '$count',
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.grey.shade700,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        context.read<SettingsBloc>().add(
+                              UpdateSettings(
+                                settings: settings.copyWith(
+                                  yearlyBookGoal: goal,
+                                ),
+                              ),
+                            );
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Save Goal',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // APP THEME PICKER
+  // ─────────────────────────────────────────
+
+  void _showAppThemePicker(
+      BuildContext context, AppSettings settings) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'App Theme',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ...['system', 'light', 'dark'].map((theme) {
+                final isSelected = settings.appTheme == theme;
+                final icons = {
+                  'system':
+                      Icons.settings_brightness_rounded,
+                  'light': Icons.wb_sunny_rounded,
+                  'dark': Icons.dark_mode_rounded,
+                };
+                final labels = {
+                  'system': 'System Default',
+                  'light': 'Light Mode',
+                  'dark': 'Dark Mode',
+                };
+                final subtitles = {
+                  'system': 'Follow your device settings',
+                  'light': 'Always use light theme',
+                  'dark': 'Always use dark theme',
+                };
+
                 return ListTile(
                   onTap: () {
-                    setState(
-                      () => _downloadQuality =
-                          option['id']!,
-                    );
-                    _saveSetting(
-                      'downloadQuality',
-                      option['id'],
-                    );
+                    context.read<SettingsBloc>().add(
+                          UpdateSettings(
+                            settings: settings.copyWith(
+                                appTheme: theme),
+                          ),
+                        );
                     Navigator.pop(context);
                   },
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  tileColor: isSelected
+                      ? AppColors.primary.withOpacity(0.08)
+                      : null,
+                  leading: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary.withOpacity(0.1)
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      icons[theme],
+                      color: isSelected
+                          ? AppColors.primary
+                          : Colors.grey.shade600,
+                    ),
+                  ),
                   title: Text(
-                    option['label']!,
+                    labels[theme]!,
                     style: TextStyle(
                       fontWeight: isSelected
                           ? FontWeight.w700
@@ -817,31 +1211,21 @@ class _SettingsScreenState
                     ),
                   ),
                   subtitle: Text(
-                    option['subtitle']!,
+                    subtitles[theme]!,
                     style: TextStyle(
-                      color: Colors.grey.shade500,
                       fontSize: 12,
+                      color: Colors.grey.shade500,
                     ),
                   ),
                   trailing: isSelected
                       ? Icon(
-                          Icons.check_circle,
+                          Icons.check_circle_rounded,
                           color: AppColors.primary,
                         )
                       : null,
-                  shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(12),
-                  ),
                 );
               }),
-
-              SizedBox(
-                height: MediaQuery.of(context)
-                        .padding
-                        .bottom +
-                    16,
-              ),
+              const SizedBox(height: 8),
             ],
           ),
         );
@@ -849,362 +1233,204 @@ class _SettingsScreenState
     );
   }
 
-  // ──────────────────────────────────────────
+  // ─────────────────────────────────────────
+  // TIME PICKER
+  // ─────────────────────────────────────────
 
-  Future<void> _showReminderTimePicker() async {
-    final time = await showTimePicker(
+  Future<void> _showTimePicker(
+    BuildContext context,
+    AppSettings settings,
+  ) async {
+    final picked = await showTimePicker(
       context: context,
-      initialTime:
-          const TimeOfDay(hour: 20, minute: 0),
+      initialTime: settings.reminderTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.primary,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
-    if (time != null) {
-      await _saveSetting('reminderHour', time.hour);
-      await _saveSetting(
-        'reminderMinute',
-        time.minute,
-      );
-
-      if (mounted) {
-        context
-            .read<NotificationService>()
-            .scheduleDailyReminder(
-              hour: time.hour,
-              minute: time.minute,
-            );
-      }
+    if (picked != null && context.mounted) {
+      context.read<SettingsBloc>().add(
+            UpdateSettings(
+              settings:
+                  settings.copyWith(reminderTime: picked),
+            ),
+          );
     }
   }
 
-  // ──────────────────────────────────────────
-
-  void _showLanguagePicker() {
-    final languages = [
-      {'code': 'en', 'name': 'English', 'flag': '🇺🇸'},
-      {'code': 'hi', 'name': 'Hindi', 'flag': '🇮🇳'},
-      {'code': 'es', 'name': 'Spanish', 'flag': '🇪🇸'},
-      {'code': 'fr', 'name': 'French', 'flag': '🇫🇷'},
-      {'code': 'de', 'name': 'German', 'flag': '🇩🇪'},
-      {'code': 'ar', 'name': 'Arabic', 'flag': '🇸🇦'},
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius:
-                      BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Language',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              ...languages.map(
-                (lang) => ListTile(
-                  leading: Text(
-                    lang['flag']!,
-                    style:
-                        const TextStyle(fontSize: 24),
-                  ),
-                  title: Text(
-                    lang['name']!,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  trailing: lang['code'] == 'en'
-                      ? Icon(
-                          Icons.check_circle,
-                          color: AppColors.primary,
-                        )
-                      : null,
-                  onTap: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '${lang['name']} coming soon!',
-                        ),
-                        behavior:
-                            SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                  shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-
-              SizedBox(
-                height: MediaQuery.of(context)
-                        .padding
-                        .bottom +
-                    16,
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   // ─────────────────────────────────────────
-  // DIALOGS
+  // CLEAR CACHE DIALOG
   // ─────────────────────────────────────────
 
-  void _showStorageDialog() {
+  void _showClearCacheDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) {
-        return FutureBuilder<Map<String, dynamic>>(
-          future: _calculateStorage(),
-          builder: (context, snapshot) {
-            final data = snapshot.data;
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(20),
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.delete_sweep_rounded,
+                  color: Colors.orange),
+              SizedBox(width: 10),
+              Text(
+                'Clear Cache',
+                style:
+                    TextStyle(fontWeight: FontWeight.w700),
               ),
-              title: const Text(
-                'Storage',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                ),
+            ],
+          ),
+          content: const Text(
+            'This will clear cached images and temporary files. '
+            'Your books and reading progress won\'t be affected.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style:
+                    TextStyle(color: Colors.grey.shade600),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (snapshot.connectionState ==
-                      ConnectionState.waiting)
-                    const Padding(
-                      padding: EdgeInsets.all(20),
-                      child:
-                          CircularProgressIndicator(),
-                    )
-                  else ...[
-                    _StorageRow(
-                      label: 'Downloaded Books',
-                      size: data?['booksSize'] ??
-                          '0 MB',
-                      color: Colors.blue,
-                      percentage:
-                          data?['booksPercent'] ??
-                              0.0,
-                    ),
-                    const SizedBox(height: 16),
-                    _StorageRow(
-                      label: 'Image Cache',
-                      size: data?['cacheSize'] ??
-                          '0 MB',
-                      color: Colors.orange,
-                      percentage:
-                          data?['cachePercent'] ??
-                              0.0,
-                    ),
-                    const SizedBox(height: 16),
-                    _StorageRow(
-                      label: 'App Data',
-                      size: data?['appDataSize'] ??
-                          '0 MB',
-                      color: Colors.green,
-                      percentage:
-                          data?['appDataPercent'] ??
-                              0.0,
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding:
-                          const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius:
-                            BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment
-                                .spaceBetween,
-                        children: [
-                          const Text(
-                            'Total',
-                            style: TextStyle(
-                              fontWeight:
-                                  FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            data?['totalSize'] ??
-                                '0 MB',
-                            style: const TextStyle(
-                              fontWeight:
-                                  FontWeight.w800,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () =>
-                      Navigator.pop(context),
-                  child: const Text('Close'),
-                ),
-                ElevatedButton(
-                                    onPressed: () {
-                    Navigator.pop(context);
-                    _showClearCacheDialog();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        Colors.red.shade400,
-                    foregroundColor: Colors.white,
+            ),
+            TextButton(
+              onPressed: () {
+                context
+                    .read<SettingsBloc>()
+                    .add(ClearCache());
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text(
+                        'Cache cleared successfully ✅'),
+                    behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
                       borderRadius:
                           BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Clear Cache'),
+                );
+              },
+              child: const Text(
+                'Clear',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.w700,
                 ),
-              ],
-            );
-          },
+              ),
+            ),
+          ],
         );
       },
     );
   }
 
-  // ──────────────────────────────────────────
+  // ─────────────────────────────────────────
+  // SIGN OUT DIALOG
+  // ─────────────────────────────────────────
 
-  void _showClearCacheDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: const Text('Clear Cache'),
-        content: const Text(
-          'This will clear cached images and temporary'
-          ' files. Your downloaded books and reading'
-          ' progress will NOT be affected.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () =>
-                Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _clearCache();
-              if (mounted) {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Cache cleared successfully! ✨',
-                    ),
-                    behavior:
-                        SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text('Clear'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ──────────────────────────────────────────
-
-  void _showDeleteAccountDialog() {
+  void _showSignOutDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) {
-        final confirmController =
-            TextEditingController();
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'Sign Out',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          content: const Text(
+            'Are you sure you want to sign out? '
+            'Your data will be synced when you sign back in.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style:
+                    TextStyle(color: Colors.grey.shade600),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                context
+                    .read<AuthBloc>()
+                    .add(SignOutRequested());
+              },
+              child: const Text(
+                'Sign Out',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
+  // ─────────────────────────────────────────
+  // DELETE ACCOUNT DIALOG
+  // ─────────────────────────────────────────
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    final confirmController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
           title: Row(
             children: [
-              Icon(
-                Icons.warning_rounded,
-                color: Colors.red.shade400,
+              Icon(Icons.warning_rounded,
+                  color: Colors.red.shade600),
+              const SizedBox(width: 10),
+              const Text(
+                'Delete Account',
+                style:
+                    TextStyle(fontWeight: FontWeight.w700),
               ),
-              const SizedBox(width: 8),
-              const Text('Delete Account'),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'This action is permanent and cannot'
-                ' be undone. All your data will be'
-                ' deleted including:',
+                'This will permanently delete your account '
+                'and all associated data including:',
               ),
               const SizedBox(height: 12),
-              const _DeleteWarningItem(
-                text: 'Reading progress & history',
-              ),
-              const _DeleteWarningItem(
-                text: 'Bookmarks & annotations',
-              ),
-              const _DeleteWarningItem(
-                text: 'Downloaded books',
-              ),
-              const _DeleteWarningItem(
-                text: 'Subscription & purchases',
-              ),
+              _DeleteItem('Your reading history'),
+              _DeleteItem('All bookmarks and highlights'),
+              _DeleteItem('Your reviews and ratings'),
+              _DeleteItem('Reading statistics'),
               const SizedBox(height: 16),
-              const Text(
-                'Type "DELETE" to confirm:',
+              Text(
+                'Type "DELETE" to confirm',
                 style: TextStyle(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.red.shade700,
+                  fontSize: 13,
                 ),
               ),
               const SizedBox(height: 8),
@@ -1212,20 +1438,14 @@ class _SettingsScreenState
                 controller: confirmController,
                 decoration: InputDecoration(
                   hintText: 'DELETE',
-                  filled: true,
-                  fillColor: Colors.red.shade50,
                   border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: Colors.red.shade200,
-                    ),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: Colors.red.shade400,
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Colors.red,
+                      width: 2,
                     ),
                   ),
                 ),
@@ -1234,32 +1454,28 @@ class _SettingsScreenState
           ),
           actions: [
             TextButton(
-              onPressed: () =>
-                  Navigator.pop(context),
-              child: const Text('Cancel'),
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style:
+                    TextStyle(color: Colors.grey.shade600),
+              ),
             ),
-            ElevatedButton(
+            TextButton(
               onPressed: () {
-                if (confirmController.text
-                        .trim() ==
-                    'DELETE') {
+                if (confirmController.text == 'DELETE') {
                   Navigator.pop(context);
-                  context
-                      .read<AuthBloc>()
-                      .add(DeleteAccountRequested());
-                  context.go('/login');
+                  context.read<AuthBloc>().add(
+                      DeleteAccountRequested());
                 }
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(12),
+              child: Text(
+                'Delete Forever',
+                style: TextStyle(
+                  color: Colors.red.shade700,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              child:
-                  const Text('Delete Forever'),
             ),
           ],
         );
@@ -1268,152 +1484,365 @@ class _SettingsScreenState
   }
 
   // ─────────────────────────────────────────
-  // HELPERS
+  // CHANGE PASSWORD SHEET
   // ─────────────────────────────────────────
 
-  Future<Map<String, dynamic>>
-      _calculateStorage() async {
-    final downloadService =
-        context.read<DownloadService>();
-    final booksBytes =
-        await downloadService.getTotalDownloadSize();
+  void _showChangePasswordSheet(BuildContext context) {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
 
-    final cacheDir = await getTemporaryDirectory();
-    final cacheBytes =
-        await _getDirectorySize(cacheDir);
-
-    final appDir =
-        await getApplicationDocumentsDirectory();
-    final appBytes =
-        await _getDirectorySize(appDir);
-
-    final totalBytes =
-        booksBytes + cacheBytes + appBytes;
-
-    return {
-      'booksSize': _formatBytes(booksBytes),
-      'cacheSize': _formatBytes(cacheBytes),
-      'appDataSize': _formatBytes(appBytes),
-      'totalSize': _formatBytes(totalBytes),
-      'booksPercent': totalBytes > 0
-          ? booksBytes / totalBytes
-          : 0.0,
-      'cachePercent': totalBytes > 0
-          ? cacheBytes / totalBytes
-          : 0.0,
-      'appDataPercent': totalBytes > 0
-          ? appBytes / totalBytes
-          : 0.0,
-    };
-  }
-
-  // ──────────────────────────────────────────
-
-  Future<int> _getDirectorySize(
-    Directory dir,
-  ) async {
-    int size = 0;
-    try {
-      if (await dir.exists()) {
-        await for (final entity in dir.list(
-          recursive: true,
-          followLinks: false,
-        )) {
-          if (entity is File) {
-            size += await entity.length();
-          }
-        }
-      }
-    } catch (_) {}
-    return size;
-  }
-
-  // ──────────────────────────────────────────
-
-  String _formatBytes(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) {
-      return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    }
-    if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    }
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
-  }
-
-  // ──────────────────────────────────────────
-
-  Future<void> _clearCache() async {
-    final cacheDir = await getTemporaryDirectory();
-    if (await cacheDir.exists()) {
-      await cacheDir.delete(recursive: true);
-      await cacheDir.create();
-    }
-    await DefaultCacheManager().emptyCache();
-  }
-
-  // ──────────────────────────────────────────
-
-  Future<void> _exportData() async {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Preparing your data...'),
-          ],
-        ),
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(24)),
       ),
-    );
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            12,
+            24,
+            MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Change Password',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _PasswordField(
+                controller: currentPasswordController,
+                label: 'Current Password',
+              ),
+              const SizedBox(height: 14),
+              _PasswordField(
+                controller: newPasswordController,
+                label: 'New Password',
+              ),
+              const SizedBox(height: 14),
+              _PasswordField(
+                controller: confirmPasswordController,
+                label: 'Confirm New Password',
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final newPass =
+                        newPasswordController.text;
+                    final confirmPass =
+                        confirmPasswordController.text;
 
-    try {
-      final data = await context
-          .read<ProfileBloc>()
-          .exportUserData();
+                    if (newPass != confirmPass) {
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(
+                        const SnackBar(
+                          content:
+                              Text('Passwords don\'t match'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
 
-      if (mounted) Navigator.pop(context);
+                    if (newPass.length < 6) {
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Password must be at least 6 characters',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
 
-      await Share.shareXFiles(
-        [XFile(data.path)],
-        subject: 'BookNest Data Export',
-      );
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Export failed: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
+                    context.read<AuthBloc>().add(
+                          ChangePasswordRequested(
+                            currentPassword:
+                                currentPasswordController
+                                    .text,
+                            newPassword: newPass,
+                          ),
+                        );
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Update Password',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
         );
-      }
+      },
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // ABOUT DIALOG
+  // ─────────────────────────────────────────
+
+  void _showAboutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color:
+                      AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(
+                  Icons.auto_stories_rounded,
+                  color: AppColors.primary,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'BookNest',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Version 1.0.0',
+                style: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Your personal reading companion. '
+                'Track your reading, discover new books, '
+                'and build a lifelong reading habit.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Made with ❤️ for book lovers',
+                style: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // LAUNCH URL
+  // ─────────────────────────────────────────
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
     }
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRIVATE WIDGET — _StorageRow
+// WIDGET — _DeleteItem
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _StorageRow extends StatelessWidget {
-  final String label;
-  final String size;
-  final Color color;
-  final double percentage;
+class _DeleteItem extends StatelessWidget {
+  final String text;
+  const _DeleteItem(this.text);
 
-  const _StorageRow({
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Icon(Icons.remove_circle,
+              color: Colors.red.shade300, size: 16),
+          const SizedBox(width: 8),
+          Text(text,
+              style: const TextStyle(fontSize: 13)),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WIDGET — _CircleButton
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CircleButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _CircleButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: Colors.grey.shade700),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WIDGET — _PasswordField
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PasswordField extends StatefulWidget {
+  final TextEditingController controller;
+  final String label;
+
+  const _PasswordField({
+    required this.controller,
     required this.label,
-    required this.size,
-    required this.color,
-    required this.percentage,
+  });
+
+  @override
+  State<_PasswordField> createState() =>
+      _PasswordFieldState();
+}
+
+class _PasswordFieldState extends State<_PasswordField> {
+  bool _obscure = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: widget.controller,
+      obscureText: _obscure,
+      decoration: InputDecoration(
+        labelText: widget.label,
+        labelStyle:
+            TextStyle(color: Colors.grey.shade500),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide:
+              BorderSide(color: Colors.grey.shade200),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide:
+              BorderSide(color: Colors.grey.shade200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: AppColors.primary,
+            width: 2,
+          ),
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscure
+                ? Icons.visibility_off_rounded
+                : Icons.visibility_rounded,
+            color: Colors.grey.shade500,
+          ),
+          onPressed: () {
+            setState(() => _obscure = !_obscure);
+          },
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WIDGET — _SettingsSection
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SettingsSection extends StatelessWidget {
+  final String title;
+  final Color? titleColor;
+  final List<Widget> children;
+
+  const _SettingsSection({
+    required this.title,
+    this.titleColor,
+    required this.children,
   });
 
   @override
@@ -1421,48 +1850,45 @@ class _StorageRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment:
-              MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius:
-                        BorderRadius.circular(3),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+        Padding(
+          padding:
+              const EdgeInsets.only(left: 4, bottom: 10),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: titleColor ?? Colors.black87,
             ),
-            Text(
-              size,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Colors.grey.shade700,
-              ),
-            ),
-          ],
+          ),
         ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: percentage,
-            backgroundColor: Colors.grey.shade200,
-            valueColor:
-                AlwaysStoppedAnimation<Color>(color),
-            minHeight: 6,
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children:
+                List.generate(children.length, (index) {
+              return Column(
+                children: [
+                  children[index],
+                  if (index < children.length - 1)
+                    Divider(
+                      height: 1,
+                      indent: 56,
+                      color: Colors.grey.shade100,
+                    ),
+                ],
+              );
+            }),
           ),
         ),
       ],
@@ -1471,35 +1897,123 @@ class _StorageRow extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRIVATE WIDGET — _DeleteWarningItem
+// WIDGET — _SettingsTile
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _DeleteWarningItem extends StatelessWidget {
-  final String text;
+class _SettingsTile extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String? subtitle;
+  final Color? titleColor;
+  final VoidCallback? onTap;
 
-  const _DeleteWarningItem({required this.text});
+  const _SettingsTile({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    this.subtitle,
+    this.titleColor,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding:
-          const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Icon(
-            Icons.remove_circle,
-            color: Colors.red.shade300,
-            size: 16,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: TextStyle(
-              color: Colors.grey.shade700,
-              fontSize: 13,
-            ),
-          ),
-        ],
+    return ListTile(
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 4,
+      ),
+      leading: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: iconColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: iconColor, size: 20),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: titleColor ?? Colors.black87,
+        ),
+      ),
+      subtitle: subtitle != null
+          ? Text(
+              subtitle!,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade500,
+              ),
+            )
+          : null,
+      trailing: Icon(
+        Icons.chevron_right_rounded,
+        color: Colors.grey.shade400,
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WIDGET — _SwitchTile
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SwitchTile extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _SwitchTile({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 4,
+      ),
+      leading: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: iconColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: iconColor, size: 20),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          fontSize: 12,
+          color: Colors.grey.shade500,
+        ),
+      ),
+      trailing: Switch.adaptive(
+        value: value,
+        onChanged: onChanged,
+        activeColor: AppColors.primary,
       ),
     );
   }

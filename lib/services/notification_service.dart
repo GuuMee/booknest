@@ -1,13 +1,24 @@
 // lib/services/notification_service.dart
 
-import 'dart:convert';                              // jsonDecode, jsonEncode
-import 'dart:io';                                   // File
+import 'dart:convert';                              // jsonDecode
+                                                    // jsonEncode
 
-import 'package:dio/dio.dart';                      // Dio, Options, ResponseType
-import 'package:firebase_messaging/firebase_messaging.dart'; // FirebaseMessaging,
+import 'dart:io';                                   // File
+                                                    // Platform.isAndroid
+                                                    // Platform.isIOS
+
+import 'package:dio/dio.dart';                      // Dio
+                                                    // Options
+                                                    // ResponseType
+
+import 'package:firebase_messaging/firebase_messaging.dart';
+                                                    // FirebaseMessaging
                                                     // RemoteMessage
+
 import 'package:flutter/foundation.dart';           // debugPrint
+
 import 'package:flutter/material.dart';             // Color
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
                                                     // FlutterLocalNotificationsPlugin
                                                     // AndroidInitializationSettings
@@ -15,17 +26,23 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
                                                     // InitializationSettings
                                                     // NotificationResponse
                                                     // AndroidNotificationDetails
+                                                    // AndroidFlutterLocalNotificationsPlugin
+                                                    // IOSFlutterLocalNotificationsPlugin
                                                     // DarwinNotificationDetails
                                                     // NotificationDetails
-                                                    // Importance, Priority
+                                                    // Importance
+                                                    // Priority
                                                     // BigPictureStyleInformation
                                                     // BigTextStyleInformation
                                                     // FilePathAndroidBitmap
                                                     // AndroidScheduleMode
                                                     // UILocalNotificationDateInterpretation
                                                     // DateTimeComponents
+
 import 'package:path_provider/path_provider.dart';  // getTemporaryDirectory
-import 'package:timezone/timezone.dart' as tz;      // tz.TZDateTime, tz.local
+
+import 'package:timezone/timezone.dart' as tz;      // tz.TZDateTime
+                                                    // tz.local
 
 // Core - Navigation
 import '../core/navigation/navigator_key.dart';     // navigatorKey
@@ -37,18 +54,20 @@ import '../core/navigation/navigator_key.dart';     // navigatorKey
 class NotificationService {
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  final FirebaseMessaging _fcm =
+      FirebaseMessaging.instance;
 
   // ─────────────────────────────────────────
   // INIT
   // ─────────────────────────────────────────
 
   Future<void> initialize() async {
-    // Local Notifications setup
-    const androidSettings = AndroidInitializationSettings(
+    const androidSettings =
+        AndroidInitializationSettings(
       '@mipmap/ic_launcher',
     );
-    const iosSettings = DarwinInitializationSettings(
+    const iosSettings =
+        DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
@@ -64,17 +83,17 @@ class NotificationService {
           _onNotificationTap,
     );
 
-    // FCM Setup
     await _requestPermission();
     await _setupFCM();
   }
 
   // ─────────────────────────────────────────
-  // PERMISSIONS
+  // PERMISSIONS — private (FCM)
   // ─────────────────────────────────────────
 
   Future<void> _requestPermission() async {
-    final settings = await _fcm.requestPermission(
+    final settings =
+        await _fcm.requestPermission(
       alert: true,
       badge: true,
       sound: true,
@@ -87,6 +106,29 @@ class NotificationService {
   }
 
   // ─────────────────────────────────────────
+  // PERMISSIONS — public (platform plugins)  ← ДОБАВЛЕНО
+  // ─────────────────────────────────────────
+
+  Future<void> requestPermission() async {
+    if (Platform.isAndroid) {
+      final androidPlugin = _notifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      await androidPlugin
+          ?.requestNotificationsPermission();
+    } else if (Platform.isIOS) {
+      final iosPlugin = _notifications
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>();
+      await iosPlugin?.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
+  }
+
+  // ─────────────────────────────────────────
   // FCM SETUP
   // ─────────────────────────────────────────
 
@@ -94,37 +136,34 @@ class NotificationService {
     final token = await _fcm.getToken();
     debugPrint('FCM Token: $token');
 
-    // Save token to server
     if (token != null) {
       // await _apiService.registerFCMToken(token);
     }
 
-    // Token refresh listener
     _fcm.onTokenRefresh.listen((newToken) {
-      debugPrint('FCM Token refreshed: $newToken');
-      // await _apiService.registerFCMToken(newToken);
+      debugPrint(
+        'FCM Token refreshed: $newToken',
+      );
     });
 
-    // Foreground messages
     FirebaseMessaging.onMessage.listen(
       (RemoteMessage message) {
         _showNotification(
           title:
               message.notification?.title ?? '',
-          body: message.notification?.body ?? '',
+          body:
+              message.notification?.body ?? '',
           payload: message.data.toString(),
         );
       },
     );
 
-    // Background message tap
     FirebaseMessaging.onMessageOpenedApp.listen(
       (RemoteMessage message) {
         _handleMessageNavigation(message.data);
       },
     );
 
-    // App opened from terminated state
     final initialMessage =
         await _fcm.getInitialMessage();
     if (initialMessage != null) {
@@ -133,7 +172,6 @@ class NotificationService {
       );
     }
 
-    // Subscribe to topics
     await _fcm.subscribeToTopic('all_users');
     await _fcm.subscribeToTopic('new_books');
   }
@@ -166,7 +204,8 @@ class NotificationService {
             ?.pushNamed('/subscription');
         break;
       default:
-        navigatorKey.currentState?.pushNamed('/');
+        navigatorKey.currentState
+            ?.pushNamed('/');
     }
   }
 
@@ -185,7 +224,8 @@ class NotificationService {
     if (imageUrl != null) {
       final bigPicture =
           await _downloadImage(imageUrl);
-      androidDetails = AndroidNotificationDetails(
+      androidDetails =
+          AndroidNotificationDetails(
         'booknest_main',
         'BookNest Notifications',
         channelDescription:
@@ -194,7 +234,9 @@ class NotificationService {
         priority: Priority.high,
         styleInformation: bigPicture != null
             ? BigPictureStyleInformation(
-                FilePathAndroidBitmap(bigPicture),
+                FilePathAndroidBitmap(
+                  bigPicture,
+                ),
                 contentTitle: title,
                 summaryText: body,
               )
@@ -254,7 +296,8 @@ class NotificationService {
           responseType: ResponseType.bytes,
         ),
       );
-      final dir = await getTemporaryDirectory();
+      final dir =
+          await getTemporaryDirectory();
       final file = File(
         '${dir.path}/notification_image.jpg',
       );
@@ -295,7 +338,7 @@ class NotificationService {
     required int minute,
   }) async {
     await _notifications.zonedSchedule(
-      0, // Fixed ID for daily reminder
+      0,
       '📚 Time to Read!',
       'Your daily reading goal awaits.'
           ' Just 15 minutes can make a difference!',
@@ -316,8 +359,8 @@ class NotificationService {
           presentSound: true,
         ),
       ),
-      androidScheduleMode:
-          AndroidScheduleMode.inexactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode
+          .inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation
               .absoluteTime,
@@ -360,8 +403,9 @@ class NotificationService {
       1,
       '🔥 Keep your streak alive!',
       'You haven\'t read today yet.'
-          ' Open a book to maintain your reading streak!',
-      _nextInstanceOfTime(21, 0), // 9 PM
+          ' Open a book to maintain your'
+          ' reading streak!',
+      _nextInstanceOfTime(21, 0),
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'booknest_streak',
@@ -377,13 +421,31 @@ class NotificationService {
           presentSound: true,
         ),
       ),
-      androidScheduleMode:
-          AndroidScheduleMode.inexactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode
+          .inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation
               .absoluteTime,
       matchDateTimeComponents:
           DateTimeComponents.time,
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // ONE-TIME — Streak Reminder            ← ДОБАВЛЕНО
+  // ─────────────────────────────────────────
+
+  Future<void> showStreakReminder(
+    int streakDays,
+  ) async {
+    await _showNotification(
+      title: '🔥 Your $streakDays-Day Streak!',
+      body:
+          'Don\'t let it end! Read a little'
+          ' today to keep going.',
+      payload: jsonEncode(
+        {'type': 'streak_reminder'},
+      ),
     );
   }
 

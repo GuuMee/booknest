@@ -48,9 +48,18 @@ class AppColors {
   static const Color warning = Color(0xFFFF9800);
   static const Color info    = Color(0xFF2196F3);
 
+  // ─── Reading Status ─────────────────────────────────────
+  // ✅ ADDED from top code
+  static const Color reading     = Color(0xFF42A5F5);
+  static const Color completed   = Color(0xFF66BB6A);
+  static const Color wantToRead  = Color(0xFFFFA726);
+  static const Color dropped     = Color(0xFFEF5350);
+
   // ─── Rating ─────────────────────────────────────────────
   static const Color starFilled = Color(0xFFFFB800);
   static const Color starEmpty  = Color(0xFFE0E0E0);
+  // ✅ ADDED from top code
+  static const Color ratingGold = Color(0xFFFFB300);
 
   // ─── Kids Mode Colors ───────────────────────────────────
   static const Color kidsBlue   = Color(0xFF42A5F5);
@@ -61,27 +70,59 @@ class AppColors {
   static const Color kidsYellow = Color(0xFFFFEE58);
 
   // ─── Gradients ──────────────────────────────────────────
-  static const LinearGradient primaryGradient = LinearGradient(
+  static const LinearGradient primaryGradient =
+      LinearGradient(
     colors: [Color(0xFF6C63FF), Color(0xFF9D97FF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient premiumGradient = LinearGradient(
+  static const LinearGradient premiumGradient =
+      LinearGradient(
     colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient kidsGradient = LinearGradient(
-    colors: [Color(0xFF42A5F5), Color(0xFF66BB6A), Color(0xFFFFB74D)],
+  static const LinearGradient kidsGradient =
+      LinearGradient(
+    colors: [
+      Color(0xFF42A5F5),
+      Color(0xFF66BB6A),
+      Color(0xFFFFB74D),
+    ],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient splashGradient = LinearGradient(
+  static const LinearGradient splashGradient =
+      LinearGradient(
     colors: [Color(0xFF6C63FF), Color(0xFF4A42DB)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
+  );
+
+  // ✅ ADDED from top code
+  static const LinearGradient warmGradient =
+      LinearGradient(
+    colors: [Color(0xFFFF6584), Color(0xFFFF8A65)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // ✅ ADDED from top code
+  static const LinearGradient coolGradient =
+      LinearGradient(
+    colors: [Color(0xFF42A5F5), Color(0xFF03DAC6)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // ✅ ADDED from top code
+  static const LinearGradient darkGradient =
+      LinearGradient(
+    colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
   );
 }

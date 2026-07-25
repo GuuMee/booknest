@@ -1,14 +1,41 @@
 // lib/services/download_service.dart
 
-import 'dart:async';                              // StreamController, Stream
-import 'dart:io';                                 // File, Directory
+import 'dart:async';                                  // StreamController
+                                                      // Stream
 
-import 'package:dio/dio.dart';                    // Dio
-import 'package:hive/hive.dart';                  // Box
-import 'package:path_provider/path_provider.dart'; // getApplicationDocumentsDirectory
+import 'dart:io';                                     // File
+
+import 'package:dio/dio.dart';                        // Dio
+                                                      // CancelToken
+                                                      // DioException
+                                                      // DioExceptionType
+
+import 'package:get_it/get_it.dart';                  // GetIt
+                                                      // .I<T>()
+
+import 'package:hive/hive.dart';                      // Hive
+                                                      // .box()
+                                                      // Box
+
+import 'package:path_provider/path_provider.dart';    // getApplicationDocumentsDirectory()
+
+// Services
+import 'notification_service.dart';                   // NotificationService
+                                                      // .showDownloadComplete()
 
 // Data - Models
-import '../data/models/book_model.dart';          // BookModel
+import '../data/models/downloaded_book.dart';         // DownloadedBook
+                                                      // .toJson()
+                                                      // .fromJson()
+
+// Data - Models
+import '../data/models/download_progress.dart';       // DownloadProgress
+                                                      // .bookId
+                                                      // .progress
+                                                      // .status
+
+// Data - Enums
+import '../data/enums/download_status.dart';          // DownloadStatus
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SERVICE
@@ -18,9 +45,16 @@ class DownloadService {
   final Dio _dio;
   final Box _downloadsBox;
 
+  // CancelToken из новой версии
+  final Map<String, CancelToken> _activeDownloads =
+      {};
+
   final StreamController<DownloadProgress>
       _progressController =
           StreamController<DownloadProgress>.broadcast();
+
+  Stream<DownloadProgress> get progressStream =>
+      _progressController.stream;
 
   DownloadService({
     required Dio dio,
@@ -29,115 +63,162 @@ class DownloadService {
         _downloadsBox = downloadsBox;
 
   // ─────────────────────────────────────────
-  // STREAM
-  // ─────────────────────────────────────────
-
-  Stream<DownloadProgress> get downloadProgress =>
-      _progressController.stream;
-
-  // ─────────────────────────────────────────
   // DOWNLOAD
   // ─────────────────────────────────────────
 
-  Future<String> downloadBook(BookModel book) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final filePath = '${dir.path}/books/${book.id}.pdf';
-    final file = File(filePath);
+  // 🆕 Расширен: onComplete, onError callbacks
+  //    нужны DownloadsBloc._onStartDownload()
+  Future<String> downloadBook({
+    required String bookId,
+    required String downloadUrl,
+    required String title,
+    required String coverUrl,
+    Function(double progress)? onProgress,
+    Function(String filePath)? onComplete,   // 🆕
+    Function(String error)? onError,         // 🆕
+  }) async {
+    if (_activeDownloads.containsKey(bookId)) {
+      throw Exception(
+        'Download already in progress',
+      );
+    }
 
-    // Create directory if it doesn't exist
-    await file.parent.create(recursive: true);
+    final cancelToken = CancelToken();
+    _activeDownloads[bookId] = cancelToken;
 
     try {
+      final dir =
+          await getApplicationDocumentsDirectory();
+      final filePath =
+          '${dir.path}/books/$bookId.pdf';
+      final file = File(filePath);
+      await file.parent.create(recursive: true);
+
+      _progressController.add(
+        DownloadProgress(
+          bookId: bookId,
+          progress: 0,
+          status: DownloadStatus.downloading,
+        ),
+      );
+
       await _dio.download(
-        book.pdfUrl,
+        downloadUrl,
         filePath,
+        cancelToken: cancelToken,
         onReceiveProgress: (received, total) {
-          if (total > 0) {
+          if (total != -1) {
             final progress = received / total;
+            onProgress?.call(progress);
             _progressController.add(
               DownloadProgress(
-                bookId: book.id,
+                bookId: bookId,
                 progress: progress,
-                receivedBytes: received,
-                totalBytes: total,
+                status: DownloadStatus.downloading,
               ),
             );
           }
         },
       );
 
-      // Save download metadata to Hive
-      await _downloadsBox.put(book.id, {
-        'bookId': book.id,
-        'filePath': filePath,
-        'downloadedAt':
-            DateTime.now().toIso8601String(),
-        'fileSize': await file.length(),
-        'title': book.title,
-        'coverUrl': book.coverImageUrl,
-      });
+      // Save download record
+      final fileSize = await file.length();
+      final downloadRecord = DownloadedBook(
+        bookId: bookId,
+        title: title,
+        coverUrl: coverUrl,
+        filePath: filePath,
+        fileSize: fileSize,
+        downloadedAt: DateTime.now(),
+      );
+      await _downloadsBox.put(
+        bookId,
+        downloadRecord.toJson(),
+      );
 
       _progressController.add(
         DownloadProgress(
-          bookId: book.id,
+          bookId: bookId,
           progress: 1.0,
-          receivedBytes: await file.length(),
-          totalBytes: await file.length(),
-          isComplete: true,
+          status: DownloadStatus.completed,
         ),
       );
 
+      _activeDownloads.remove(bookId);
+
+      // Show notification
+      await GetIt.I<NotificationService>()
+          .showDownloadComplete(title);
+
+      // 🆕 onComplete callback для Bloc
+      onComplete?.call(filePath);
+
       return filePath;
-    } catch (e) {
-      // Clean up partial download
-      if (await file.exists()) {
-        await file.delete();
+    } on DioException catch (e) {
+      _activeDownloads.remove(bookId);
+
+      if (e.type == DioExceptionType.cancel) {
+        _progressController.add(
+          DownloadProgress(
+            bookId: bookId,
+            progress: 0,
+            status: DownloadStatus.cancelled,
+          ),
+        );
+
+        final file = File(
+          '${(await getApplicationDocumentsDirectory()).path}'
+          '/books/$bookId.pdf',
+        );
+        if (await file.exists()) {
+          await file.delete();
+        }
+        throw Exception('Download cancelled');
       }
 
       _progressController.add(
         DownloadProgress(
-          bookId: book.id,
+          bookId: bookId,
           progress: 0,
-          receivedBytes: 0,
-          totalBytes: 0,
-          error: e.toString(),
+          status: DownloadStatus.failed,
         ),
       );
 
-      rethrow;
+      // 🆕 onError callback для Bloc
+      onError?.call(e.message ?? 'Unknown error');
+
+      throw Exception(
+        'Download failed: ${e.message}',
+      );
     }
   }
 
   // ─────────────────────────────────────────
-  // QUERIES
+  // CANCEL
   // ─────────────────────────────────────────
 
-  Future<bool> isDownloaded(String bookId) async {
-    final data = _downloadsBox.get(bookId);
-    if (data == null) return false;
-
-    final filePath = data['filePath'] as String;
-    return File(filePath).exists();
-  }
-
-  Future<String?> getLocalPath(String bookId) async {
-    final data = _downloadsBox.get(bookId);
-    if (data == null) return null;
-
-    final filePath = data['filePath'] as String;
-    if (await File(filePath).exists()) {
-      return filePath;
+  void cancelDownload(String bookId) {
+    final cancelToken = _activeDownloads[bookId];
+    if (cancelToken != null &&
+        !cancelToken.isCancelled) {
+      cancelToken.cancel(
+        'User cancelled download',
+      );
     }
-    return null;
+    _activeDownloads.remove(bookId);
   }
 
   // ─────────────────────────────────────────
   // DELETE
   // ─────────────────────────────────────────
 
-  Future<void> deleteDownload(String bookId) async {
-    final data = _downloadsBox.get(bookId);
-    if (data != null) {
+  Future<void> deleteDownload(
+    String bookId,
+  ) async {
+    final record = _downloadsBox.get(bookId);
+    if (record != null) {
+      final data =
+          Map<String, dynamic>.from(record);
       final filePath = data['filePath'] as String;
       final file = File(filePath);
       if (await file.exists()) {
@@ -148,15 +229,58 @@ class DownloadService {
   }
 
   Future<void> deleteAllDownloads() async {
-    for (final key in _downloadsBox.keys) {
+    final keys = _downloadsBox.keys.toList();
+    for (final key in keys) {
       await deleteDownload(key as String);
     }
+  }
+
+  // ─────────────────────────────────────────
+  // QUERIES
+  // ─────────────────────────────────────────
+
+  // sync — только проверка Hive
+  bool isDownloaded(String bookId) {
+    return _downloadsBox.containsKey(bookId);
+  }
+
+  // 🆕 нужен DownloadsBloc._onStartDownload()
+  bool isDownloading(String bookId) {
+    return _activeDownloads.containsKey(bookId);
+  }
+
+  String? getLocalPath(String bookId) {
+    final record = _downloadsBox.get(bookId);
+    if (record != null) {
+      final data =
+          Map<String, dynamic>.from(record);
+      return data['filePath'] as String;
+    }
+    return null;
   }
 
   // ─────────────────────────────────────────
   // LIST
   // ─────────────────────────────────────────
 
+  // sync — используется в _emitCurrentState()
+  List<DownloadedBook> getAllDownloads() {
+    return _downloadsBox.keys.map((key) {
+      final data = Map<String, dynamic>.from(
+        _downloadsBox.get(key),
+      );
+      return DownloadedBook.fromJson(data);
+    }).toList()
+      ..sort(
+        (a, b) => b.downloadedAt.compareTo(
+          a.downloadedAt,
+        ),
+      );
+  }
+
+  // 🆕 async версия со stale cleanup
+  //    из старой версии — чистит записи
+  //    у которых файл уже удалён
   Future<List<DownloadedBook>>
       getDownloadedBooks() async {
     final downloads = <DownloadedBook>[];
@@ -169,16 +293,7 @@ class DownloadService {
 
       if (await File(filePath).exists()) {
         downloads.add(
-          DownloadedBook(
-            bookId: data['bookId'] as String,
-            filePath: filePath,
-            downloadedAt: DateTime.parse(
-              data['downloadedAt'] as String,
-            ),
-            fileSize: data['fileSize'] as int,
-            title: data['title'] as String,
-            coverUrl: data['coverUrl'] as String,
-          ),
+          DownloadedBook.fromJson(data),
         );
       } else {
         // Clean up stale entry
@@ -186,11 +301,11 @@ class DownloadService {
       }
     }
 
-    // Newest first
     return downloads
       ..sort(
-        (a, b) =>
-            b.downloadedAt.compareTo(a.downloadedAt),
+        (a, b) => b.downloadedAt.compareTo(
+          a.downloadedAt,
+        ),
       );
   }
 
@@ -198,6 +313,7 @@ class DownloadService {
   // STATS
   // ─────────────────────────────────────────
 
+  // 🆕 нужен DownloadsBloc._onLoadDownloads()
   Future<int> getTotalDownloadSize() async {
     int total = 0;
     for (final key in _downloadsBox.keys) {
@@ -213,67 +329,8 @@ class DownloadService {
   // DISPOSE
   // ─────────────────────────────────────────
 
+  // 🆕 из старой версии
   void dispose() {
     _progressController.close();
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// VALUE OBJECT — DownloadProgress
-// ─────────────────────────────────────────────────────────────────────────────
-
-class DownloadProgress {
-  final String bookId;
-  final double progress;
-  final int receivedBytes;
-  final int totalBytes;
-  final bool isComplete;
-  final String? error;
-
-  const DownloadProgress({
-    required this.bookId,
-    required this.progress,
-    required this.receivedBytes,
-    required this.totalBytes,
-    this.isComplete = false,
-    this.error,
-  });
-
-  /// e.g. "47%"
-  String get formattedProgress =>
-      '${(progress * 100).toInt()}%';
-
-  /// e.g. "12.3 MB"
-  String get formattedSize {
-    final mb = totalBytes / (1024 * 1024);
-    return '${mb.toStringAsFixed(1)} MB';
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// VALUE OBJECT — DownloadedBook
-// ─────────────────────────────────────────────────────────────────────────────
-
-class DownloadedBook {
-  final String bookId;
-  final String filePath;
-  final DateTime downloadedAt;
-  final int fileSize;
-  final String title;
-  final String coverUrl;
-
-  const DownloadedBook({
-    required this.bookId,
-    required this.filePath,
-    required this.downloadedAt,
-    required this.fileSize,
-    required this.title,
-    required this.coverUrl,
-  });
-
-  /// e.g. "8.5 MB"
-  String get formattedSize {
-    final mb = fileSize / (1024 * 1024);
-    return '${mb.toStringAsFixed(1)} MB';
   }
 }

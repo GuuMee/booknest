@@ -1,41 +1,112 @@
+```dart
 // lib/presentation/screens/search/search_screen.dart
 
-import 'dart:async';                                 // Timer
+import 'dart:async';                               // Timer
+                                                   // Timer.cancel()
 
-import 'package:cached_network_image/cached_network_image.dart'; // CachedNetworkImage
-import 'package:flutter/material.dart';              // StatefulWidget, Widget,
-                                                     // TextEditingController,
-                                                     // FocusNode, BuildContext,
-                                                     // TextSpan, RichText, etc.
-import 'package:flutter_bloc/flutter_bloc.dart';     // BlocBuilder, context.read<>()
-import 'package:go_router/go_router.dart';           // context.push()
-import 'package:shimmer/shimmer.dart';               // Shimmer.fromColors
+import 'package:cached_network_image/cached_network_image.dart';
+                                                   // CachedNetworkImage
 
-// Presentation - BLoC - Search
-import '../../bloc/search/search_bloc.dart';
-import '../../bloc/search/search_event.dart';        // LoadSearchHistory
-                                                     // PerformSearch
-                                                     // SaveSearchQuery
-                                                     // ClearSearchHistory
-                                                     // RemoveSearchQuery
-import '../../bloc/search/search_state.dart';        // SearchHistoryLoaded
-                                                     // SearchLoading
-                                                     // SearchResults
-                                                     // SearchEmpty
-                                                     // SearchError
+import 'package:flutter/material.dart';            // StatefulWidget
+                                                   // StatelessWidget
+                                                   // State<T>
+                                                   // BuildContext
+                                                   // Widget
+                                                   // Scaffold
+                                                   // SafeArea
+                                                   // Column
+                                                   // Row
+                                                   // Expanded
+                                                   // Padding
+                                                   // EdgeInsets
+                                                   // SizedBox
+                                                   // Container
+                                                   // BoxDecoration
+                                                   // BoxShadow
+                                                   // BorderRadius
+                                                   // Border
+                                                   // BoxShape
+                                                   // BoxFit
+                                                   // Offset
+                                                   // TextEditingController
+                                                   // FocusNode
+                                                   // TextField
+                                                   // InputDecoration
+                                                   // InputBorder
+                                                   // TextStyle
+                                                   // TextSpan
+                                                   // RichText
+                                                   // TextOverflow
+                                                   // TextAlign
+                                                   // Text
+                                                   // Icon
+                                                   // Icons
+                                                   // Colors
+                                                   // MaterialColor
+                                                   // GestureDetector
+                                                   // ListView
+                                                   // ListView.builder
+                                                   // GridView.builder
+                                                   // SliverGridDelegateWithFixedCrossAxisCount
+                                                   // Wrap
+                                                   // Center
+                                                   // ClipRRect
+                                                   // Spacer
+                                                   // CircularProgressIndicator
+                                                   // ElevatedButton
+                                                   // RoundedRectangleBorder
+                                                   // Radius
+                                                   // Axis
+                                                   // MainAxisAlignment
+                                                   // CrossAxisAlignment
+                                                   // MainAxisSize
+                                                   // BouncingScrollPhysics
+                                                   // NeverScrollableScrollPhysics
+                                                   // VoidCallback
+                                                   // Navigator
+                                                   // showModalBottomSheet
 
-// Presentation - BLoC - Favorites
-import '../../bloc/favorites/favorites_bloc.dart';
-import '../../bloc/favorites/favorites_event.dart';  // ToggleFavorite
+import 'package:flutter_bloc/flutter_bloc.dart';   // BlocBuilder<B, S>
+                                                   // context.read<T>()
 
-// Presentation - Widgets - Search
-import '../../widgets/search/search_filter_sheet.dart'; // SearchFilterSheet
+import 'package:go_router/go_router.dart';         // context.push()
 
-// Domain - Models
-import '../../../domain/models/book_model.dart';     // BookModel
+import 'package:shimmer/shimmer.dart';             // Shimmer.fromColors
 
-// Core - Theme
-import '../../../core/theme/app_colors.dart';        // AppColors
+// ── Presentation - BLoC - Search ────────────
+import '../../blocs/search/search_bloc.dart';      // SearchBloc
+
+import '../../blocs/search/search_event.dart';     // SearchBooks
+                                                   // ClearSearch
+                                                   // ClearRecentSearches
+                                                   // SaveRecentSearch
+                                                   // RemoveFilter
+                                                   // ClearAllFilters
+                                                   // LoadMoreResults
+
+import '../../blocs/search/search_state.dart';     // SearchState
+                                                   // SearchInitial
+                                                   // SearchLoading
+                                                   // SearchLoaded
+                                                   // SearchError
+
+// ── Presentation - Widgets ───────────────────
+import '../../widgets/search/search_filter_sheet.dart';
+                                                   // _SearchFilterSheet
+
+// ── Domain - Models ──────────────────────────
+import '../../../domain/models/book.dart';         // Book
+                                                   // Book.id
+                                                   // Book.title
+                                                   // Book.author
+                                                   // Book.coverUrl
+                                                   // Book.rating
+                                                   // Book.category
+                                                   // Book.isFree
+
+// ── Core - Theme ─────────────────────────────
+import '../../../core/theme/app_colors.dart';      // AppColors
+                                                   // AppColors.primary
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCREEN
@@ -55,10 +126,10 @@ class _SearchScreenState
   // STATE
   // ─────────────────────────────────────────
 
-  final TextEditingController _searchController =
+  final _searchController =
       TextEditingController();
-  final FocusNode _focusNode = FocusNode();
-  Timer? _debounceTimer;
+  final _focusNode = FocusNode();
+  Timer? _debounce;
 
   // ─────────────────────────────────────────
   // LIFECYCLE
@@ -68,16 +139,13 @@ class _SearchScreenState
   void initState() {
     super.initState();
     _focusNode.requestFocus();
-    context
-        .read<SearchBloc>()
-        .add(LoadSearchHistory());
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _focusNode.dispose();
-    _debounceTimer?.cancel();
+    _debounce?.cancel();
     super.dispose();
   }
 
@@ -86,18 +154,18 @@ class _SearchScreenState
   // ─────────────────────────────────────────
 
   void _onSearchChanged(String query) {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(
+    _debounce?.cancel();
+    _debounce = Timer(
       const Duration(milliseconds: 400),
       () {
-        if (query.trim().length >= 2) {
+        if (query.trim().isNotEmpty) {
           context.read<SearchBloc>().add(
-            PerformSearch(query: query.trim()),
+            SearchBooks(query: query.trim()),
           );
-        } else if (query.isEmpty) {
+        } else {
           context
               .read<SearchBloc>()
-              .add(LoadSearchHistory());
+              .add(ClearSearch());
         }
       },
     );
@@ -113,7 +181,7 @@ class _SearchScreenState
       body: SafeArea(
         child: Column(
           children: [
-            // ── Search Bar ───────────────
+            // ===== SEARCH BAR =====
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 16,
@@ -131,94 +199,91 @@ class _SearchScreenState
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius:
-                            BorderRadius.circular(12),
+                        color:
+                            Colors.grey.shade100,
+                        shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.arrow_back_ios_new,
-                        size: 18,
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        color:
+                            Colors.grey.shade700,
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
 
-                  // Search Input
+                  // Search Field
                   Expanded(
                     child: Container(
-                      height: 50,
+                      height: 48,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color:
+                            Colors.grey.shade100,
                         borderRadius:
-                            BorderRadius.circular(16),
+                            BorderRadius.circular(
+                          16,
+                        ),
                       ),
                       child: TextField(
-                        controller: _searchController,
+                        controller:
+                            _searchController,
                         focusNode: _focusNode,
-                        onChanged: _onSearchChanged,
-                        onSubmitted: (query) {
-                          if (query
-                              .trim()
-                              .isNotEmpty) {
-                            context
-                                .read<SearchBloc>()
-                                .add(
-                                  PerformSearch(
-                                    query:
-                                        query.trim(),
-                                  ),
-                                );
-                            context
-                                .read<SearchBloc>()
-                                .add(
-                                  SaveSearchQuery(
-                                    query:
-                                        query.trim(),
-                                  ),
-                                );
-                          }
-                        },
-                        decoration: InputDecoration(
+                        onChanged:
+                            _onSearchChanged,
+                        style: const TextStyle(
+                          fontSize: 16,
+                        ),
+                        decoration:
+                            InputDecoration(
                           hintText:
-                              'Search books, authors...',
+                              'Search books,'
+                              ' authors...',
                           hintStyle: TextStyle(
-                            color:
-                                Colors.grey.shade400,
+                            color: Colors
+                                .grey.shade400,
                             fontSize: 15,
                           ),
-                          prefixIcon: Icon(
-                            Icons.search_rounded,
-                            color:
-                                Colors.grey.shade400,
-                          ),
-                          suffixIcon: _searchController
-                                  .text.isNotEmpty
-                              ? GestureDetector(
-                                  onTap: () {
-                                    _searchController
-                                        .clear();
-                                    context
-                                        .read<
-                                            SearchBloc>()
-                                        .add(
-                                          LoadSearchHistory(),
-                                        );
-                                    setState(() {});
-                                  },
-                                  child: Icon(
-                                    Icons.close_rounded,
-                                    color: Colors
-                                        .grey.shade500,
-                                  ),
-                                )
-                              : null,
-                          border: InputBorder.none,
+                          border:
+                              InputBorder.none,
                           contentPadding:
                               const EdgeInsets
                                   .symmetric(
                             horizontal: 16,
                             vertical: 14,
                           ),
+                          prefixIcon: Icon(
+                            Icons.search_rounded,
+                            color: Colors
+                                .grey.shade400,
+                          ),
+                          suffixIcon:
+                              _searchController
+                                      .text
+                                      .isNotEmpty
+                                  ? GestureDetector(
+                                      onTap: () {
+                                        _searchController
+                                            .clear();
+                                        context
+                                            .read<
+                                                SearchBloc>()
+                                            .add(
+                                              ClearSearch(),
+                                            );
+                                        setState(
+                                          () {},
+                                        );
+                                      },
+                                      child: Icon(
+                                        Icons
+                                            .close_rounded,
+                                        color: Colors
+                                            .grey
+                                            .shade500,
+                                        size: 20,
+                                      ),
+                                    )
+                                  : null,
                         ),
                       ),
                     ),
@@ -226,36 +291,28 @@ class _SearchScreenState
                 ],
               ),
             ),
-            const SizedBox(height: 16),
 
-            // ── Content ──────────────────
+            // ===== CONTENT =====
             Expanded(
               child: BlocBuilder<SearchBloc,
                   SearchState>(
                 builder: (context, state) {
-                  if (state
-                      is SearchHistoryLoaded) {
-                    return _buildSearchHistory(
-                      state,
-                    );
+                  if (state is SearchInitial) {
+                    return _buildInitialState();
                   }
                   if (state is SearchLoading) {
-                    return _buildSearchLoading();
-                  }
-                  if (state is SearchResults) {
-                    return _buildSearchResults(
-                      state,
-                    );
-                  }
-                  if (state is SearchEmpty) {
-                    return _buildEmptyResults(
-                      state.query,
-                    );
+                    return _buildLoadingState();
                   }
                   if (state is SearchError) {
                     return _buildErrorState(
                       state.message,
                     );
+                  }
+                  if (state is SearchLoaded) {
+                    if (state.results.isEmpty) {
+                      return _buildEmptyState();
+                    }
+                    return _buildResults(state);
                   }
                   return const SizedBox.shrink();
                 },
@@ -268,237 +325,331 @@ class _SearchScreenState
   }
 
   // ─────────────────────────────────────────
-  // HISTORY VIEW
+  // INITIAL STATE
   // ─────────────────────────────────────────
 
-  Widget _buildSearchHistory(
-    SearchHistoryLoaded state,
-  ) {
+  Widget _buildInitialState() {
     return ListView(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 20,
+      ),
       physics: const BouncingScrollPhysics(),
       children: [
         // Recent Searches
-        if (state.recentSearches.isNotEmpty) ...[
-          Row(
-            mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Recent Searches',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
+        BlocBuilder<SearchBloc, SearchState>(
+          buildWhen: (prev, curr) =>
+              curr is SearchInitial,
+          builder: (context, state) {
+            final recentSearches =
+                state is SearchInitial
+                    ? state.recentSearches
+                    : <String>[];
+
+            if (recentSearches.isEmpty) {
+              return const SizedBox.shrink();
+            }
+
+            return Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment
+                          .spaceBetween,
+                  children: [
+                    const Text(
+                      'Recent Searches',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight:
+                            FontWeight.w800,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        context
+                            .read<SearchBloc>()
+                            .add(
+                              ClearRecentSearches(),
+                            );
+                      },
+                      child: Text(
+                        'Clear All',
+                        style: TextStyle(
+                          color:
+                              AppColors.primary,
+                          fontSize: 13,
+                          fontWeight:
+                              FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              TextButton(
-                onPressed: () {
-                  context
-                      .read<SearchBloc>()
-                      .add(ClearSearchHistory());
-                },
-                child: Text(
-                  'Clear All',
-                  style: TextStyle(
-                    color: Colors.grey.shade500,
-                    fontSize: 13,
-                  ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: recentSearches
+                      .map((search) {
+                    return GestureDetector(
+                      onTap: () {
+                        _searchController.text =
+                            search;
+                        _onSearchChanged(search);
+                        setState(() {});
+                      },
+                      child: Container(
+                        padding: const EdgeInsets
+                            .symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        decoration:
+                            BoxDecoration(
+                          color: Colors
+                              .grey.shade100,
+                          borderRadius:
+                              BorderRadius
+                                  .circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize:
+                              MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons
+                                  .history_rounded,
+                              size: 16,
+                              color: Colors
+                                  .grey.shade500,
+                            ),
+                            const SizedBox(
+                              width: 6,
+                            ),
+                            Text(
+                              search,
+                              style: TextStyle(
+                                color: Colors.grey
+                                    .shade700,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ...state.recentSearches.map((query) {
-            return ListTile(
-              onTap: () {
-                _searchController.text = query;
-                _searchController.selection =
-                    TextSelection.fromPosition(
-                  TextPosition(
-                    offset: query.length,
-                  ),
-                );
-                context.read<SearchBloc>().add(
-                  PerformSearch(query: query),
-                );
-              },
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                Icons.history_rounded,
-                color: Colors.grey.shade400,
-                size: 20,
-              ),
-              title: Text(query),
-              trailing: GestureDetector(
-                onTap: () {
-                  context.read<SearchBloc>().add(
-                    RemoveSearchQuery(query: query),
-                  );
-                },
-                child: Icon(
-                  Icons.close,
-                  size: 18,
-                  color: Colors.grey.shade400,
-                ),
-              ),
-              dense: true,
+                const SizedBox(height: 28),
+              ],
             );
-          }),
-          const SizedBox(height: 24),
-        ],
+          },
+        ),
 
         // Trending Searches
-        if (state.trendingSearches.isNotEmpty) ...[
-          const Text(
-            'Trending 🔥',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children:
-                state.trendingSearches.map((query) {
-              return GestureDetector(
-                onTap: () {
-                  _searchController.text = query;
-                  context.read<SearchBloc>().add(
-                    PerformSearch(query: query),
-                  );
-                },
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius:
-                        BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.grey.shade200,
-                    ),
-                  ),
-                  child: Text(
-                    query,
-                    style: TextStyle(
-                      color: Colors.grey.shade700,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 24),
-        ],
-
-        // Browse Categories
         const Text(
-          'Browse Categories',
+          'Trending 🔥',
           style: TextStyle(
-            fontWeight: FontWeight.w700,
             fontSize: 16,
+            fontWeight: FontWeight.w800,
           ),
         ),
         const SizedBox(height: 12),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics:
-              const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 2.5,
-          children: [
-            _CategoryChip(
-              label: 'Fiction',
-              icon: Icons.auto_stories,
-              color: Colors.blue,
-              onTap: () => context.push(
-                '/category/fiction',
-              ),
-            ),
-            _CategoryChip(
-              label: 'Science',
-              icon: Icons.science,
-              color: Colors.green,
-              onTap: () => context.push(
-                '/category/science',
-              ),
-            ),
-            _CategoryChip(
-              label: 'Business',
-              icon: Icons.business,
-              color: Colors.orange,
-              onTap: () => context.push(
-                '/category/business',
-              ),
-            ),
-            _CategoryChip(
-              label: 'Self-Help',
-              icon: Icons.psychology,
-              color: Colors.purple,
-              onTap: () => context.push(
-                '/category/self-help',
-              ),
-            ),
-            _CategoryChip(
-              label: 'Technology',
-              icon: Icons.computer,
-              color: Colors.teal,
-              onTap: () => context.push(
-                '/category/technology',
-              ),
-            ),
-            _CategoryChip(
-              label: 'History',
-              icon: Icons.history_edu,
-              color: Colors.brown,
-              onTap: () => context.push(
-                '/category/history',
-              ),
-            ),
-          ],
+        BlocBuilder<SearchBloc, SearchState>(
+          builder: (context, state) {
+            final trending =
+                state is SearchInitial
+                    ? state.trendingSearches
+                    : <String>[];
+
+            return Column(
+              children: trending.asMap().entries
+                  .map((entry) {
+                final index = entry.key;
+                final term = entry.value;
+                return _TrendingItem(
+                  rank: index + 1,
+                  term: term,
+                  onTap: () {
+                    _searchController.text =
+                        term;
+                    _onSearchChanged(term);
+                    setState(() {});
+                  },
+                );
+              }).toList(),
+            );
+          },
         ),
+        const SizedBox(height: 28),
+
+        // Popular Categories
+        const Text(
+          'Browse Categories',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildCategoryGrid(),
       ],
     );
   }
 
   // ─────────────────────────────────────────
-  // LOADING SHIMMER
+  // CATEGORY GRID
   // ─────────────────────────────────────────
 
-  Widget _buildSearchLoading() {
+  Widget _buildCategoryGrid() {
+    final categories = [
+      _CategoryItem(
+        '📚',
+        'Fiction',
+        Colors.blue,
+      ),
+      _CategoryItem(
+        '🔬',
+        'Science',
+        Colors.green,
+      ),
+      _CategoryItem(
+        '💼',
+        'Business',
+        Colors.orange,
+      ),
+      _CategoryItem('🎨', 'Art', Colors.pink),
+      _CategoryItem(
+        '🧠',
+        'Psychology',
+        Colors.purple,
+      ),
+      _CategoryItem(
+        '📖',
+        'Biography',
+        Colors.teal,
+      ),
+      _CategoryItem(
+        '🌍',
+        'Travel',
+        Colors.cyan,
+      ),
+      _CategoryItem(
+        '💻',
+        'Technology',
+        Colors.indigo,
+      ),
+      _CategoryItem(
+        '❤️',
+        'Romance',
+        Colors.red,
+      ),
+      _CategoryItem(
+        '🔮',
+        'Fantasy',
+        Colors.deepPurple,
+      ),
+      _CategoryItem(
+        '🕵️',
+        'Mystery',
+        Colors.brown,
+      ),
+      _CategoryItem(
+        '📝',
+        'Self-Help',
+        Colors.amber,
+      ),
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics:
+          const NeverScrollableScrollPhysics(),
+      gridDelegate:
+          const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 1.3,
+      ),
+      itemCount: categories.length,
+      itemBuilder: (context, index) {
+        final cat = categories[index];
+        return GestureDetector(
+          onTap: () {
+            context.push(
+              '/category/'
+              '${cat.name.toLowerCase()}',
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: cat.color.withOpacity(0.08),
+              borderRadius:
+                  BorderRadius.circular(16),
+              border: Border.all(
+                color:
+                    cat.color.withOpacity(0.15),
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment:
+                  MainAxisAlignment.center,
+              children: [
+                Text(
+                  cat.emoji,
+                  style: const TextStyle(
+                    fontSize: 28,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  cat.name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: cat.color.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // LOADING STATE
+  // ─────────────────────────────────────────
+
+  Widget _buildLoadingState() {
     return ListView.builder(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
       itemCount: 6,
       itemBuilder: (context, index) {
         return Shimmer.fromColors(
           baseColor: Colors.grey.shade200,
           highlightColor: Colors.grey.shade100,
-          child: Container(
-            margin:
-                const EdgeInsets.only(bottom: 16),
+          child: Padding(
+            padding: const EdgeInsets.only(
+              bottom: 16,
+            ),
             child: Row(
               children: [
                 Container(
                   width: 60,
-                  height: 80,
+                  height: 85,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius:
-                        BorderRadius.circular(8),
+                        BorderRadius.circular(10),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment:
@@ -507,19 +658,34 @@ class _SearchScreenState
                       Container(
                         height: 14,
                         width: double.infinity,
-                        color: Colors.white,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius:
+                              BorderRadius
+                                  .circular(4),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Container(
                         height: 12,
                         width: 120,
-                        color: Colors.white,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius:
+                              BorderRadius
+                                  .circular(4),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Container(
                         height: 10,
                         width: 80,
-                        color: Colors.white,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius:
+                              BorderRadius
+                                  .circular(4),
+                        ),
                       ),
                     ],
                   ),
@@ -533,99 +699,10 @@ class _SearchScreenState
   }
 
   // ─────────────────────────────────────────
-  // RESULTS VIEW
-  // ─────────────────────────────────────────
-
-  Widget _buildSearchResults(SearchResults state) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Results Count & Filter Row
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 20,
-          ),
-          child: Row(
-            mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${state.totalResults} results'
-                ' for "${state.query}"',
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 13,
-                ),
-              ),
-              GestureDetector(
-                onTap: () =>
-                    _showFilterSheet(context),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius:
-                        BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.tune_rounded,
-                        size: 16,
-                        color: Colors.grey.shade600,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Filter',
-                        style: TextStyle(
-                          color:
-                              Colors.grey.shade600,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Results List
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 20,
-            ),
-            physics: const BouncingScrollPhysics(),
-            itemCount: state.books.length,
-            itemBuilder: (context, index) {
-              final book = state.books[index];
-              return _SearchResultTile(
-                book: book,
-                query: state.query,
-                onTap: () => context.push(
-                  '/book/${book.id}',
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ─────────────────────────────────────────
   // EMPTY STATE
   // ─────────────────────────────────────────
 
-  Widget _buildEmptyResults(String query) {
+  Widget _buildEmptyState() {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -633,32 +710,23 @@ class _SearchScreenState
           mainAxisAlignment:
               MainAxisAlignment.center,
           children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.search_off_rounded,
-                size: 48,
-                color: Colors.grey.shade400,
-              ),
+            Icon(
+              Icons.search_off_rounded,
+              size: 80,
+              color: Colors.grey.shade300,
             ),
-            const SizedBox(height: 24),
-            Text(
-              'No results for "$query"',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
+            const SizedBox(height: 16),
+            const Text(
+              'No Results Found',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
               ),
-              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              'Try different keywords or'
-              ' check spelling',
+              'Try searching with different'
+              ' keywords or browse our categories.',
               style: TextStyle(
                 color: Colors.grey.shade500,
                 fontSize: 14,
@@ -677,48 +745,312 @@ class _SearchScreenState
 
   Widget _buildErrorState(String message) {
     return Center(
-      child: Column(
-        mainAxisAlignment:
-            MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 48,
-            color: Colors.red.shade300,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: TextStyle(
-              color: Colors.grey.shade600,
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment:
+              MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              size: 80,
+              color: Colors.red.shade300,
             ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              if (_searchController
-                  .text.isNotEmpty) {
-                context.read<SearchBloc>().add(
-                  PerformSearch(
-                    query: _searchController.text,
-                  ),
+            const SizedBox(height: 16),
+            Text(
+              'Something went wrong',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: Colors.red.shade700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                _onSearchChanged(
+                  _searchController.text,
                 );
-              }
-            },
-            child: const Text('Retry'),
-          ),
-        ],
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   // ─────────────────────────────────────────
-  // FILTER SHEET
+  // SEARCH RESULTS
   // ─────────────────────────────────────────
 
-  void _showFilterSheet(BuildContext context) {
+  Widget _buildResults(SearchLoaded state) {
+    return Column(
+      children: [
+        // Results header with filters
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            20,
+            16,
+            20,
+            8,
+          ),
+          child: Row(
+            mainAxisAlignment:
+                MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${state.totalResults} results',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+              GestureDetector(
+                onTap: () =>
+                    _showFilterBottomSheet(
+                  context,
+                ),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: state.hasActiveFilters
+                        ? AppColors.primary
+                            .withOpacity(0.1)
+                        : Colors.grey.shade100,
+                    borderRadius:
+                        BorderRadius.circular(20),
+                    border: Border.all(
+                      color:
+                          state.hasActiveFilters
+                              ? AppColors.primary
+                              : Colors
+                                  .grey.shade300,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize:
+                        MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.tune_rounded,
+                        size: 16,
+                        color:
+                            state.hasActiveFilters
+                                ? AppColors.primary
+                                : Colors
+                                    .grey.shade600,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Filters',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight:
+                              FontWeight.w600,
+                          color:
+                              state.hasActiveFilters
+                                  ? AppColors
+                                      .primary
+                                  : Colors.grey
+                                      .shade600,
+                        ),
+                      ),
+                      if (state
+                          .hasActiveFilters) ...[
+                        const SizedBox(width: 4),
+                        Container(
+                          width: 18,
+                          height: 18,
+                          decoration:
+                              BoxDecoration(
+                            color:
+                                AppColors.primary,
+                            shape:
+                                BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${state.activeFilterCount}',
+                              style:
+                                  const TextStyle(
+                                color:
+                                    Colors.white,
+                                fontSize: 10,
+                                fontWeight:
+                                    FontWeight
+                                        .w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Filter chips (active)
+        if (state.hasActiveFilters)
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding:
+                  const EdgeInsets.symmetric(
+                horizontal: 20,
+              ),
+              children: [
+                if (state.selectedCategory !=
+                    null)
+                  _FilterChip(
+                    label:
+                        state.selectedCategory!,
+                    onRemove: () {
+                      context
+                          .read<SearchBloc>()
+                          .add(
+                            RemoveFilter(
+                              filter: 'category',
+                            ),
+                          );
+                    },
+                  ),
+                if (state.selectedRating != null)
+                  _FilterChip(
+                    label:
+                        '${state.selectedRating}'
+                        '+ ⭐',
+                    onRemove: () {
+                      context
+                          .read<SearchBloc>()
+                          .add(
+                            RemoveFilter(
+                              filter: 'rating',
+                            ),
+                          );
+                    },
+                  ),
+                if (state.selectedYear != null)
+                  _FilterChip(
+                    label: '${state.selectedYear}',
+                    onRemove: () {
+                      context
+                          .read<SearchBloc>()
+                          .add(
+                            RemoveFilter(
+                              filter: 'year',
+                            ),
+                          );
+                    },
+                  ),
+                _FilterChip(
+                  label: 'Clear All',
+                  isReset: true,
+                  onRemove: () {
+                    context
+                        .read<SearchBloc>()
+                        .add(ClearAllFilters());
+                  },
+                ),
+              ],
+            ),
+          ),
+
+        // Results list
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              8,
+              20,
+              100,
+            ),
+            physics:
+                const BouncingScrollPhysics(),
+            itemCount: state.results.length +
+                (state.hasMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index ==
+                  state.results.length) {
+                context
+                    .read<SearchBloc>()
+                    .add(LoadMoreResults());
+                return const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(
+                    child:
+                        CircularProgressIndicator(
+                      strokeWidth: 2,
+                    ),
+                  ),
+                );
+              }
+
+              final book =
+                  state.results[index];
+              return _SearchResultItem(
+                book: book,
+                searchQuery:
+                    _searchController.text,
+                onTap: () {
+                  context
+                      .read<SearchBloc>()
+                      .add(
+                        SaveRecentSearch(
+                          query:
+                              _searchController
+                                  .text,
+                        ),
+                      );
+                  context.push(
+                    '/book/${book.id}',
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // FILTER BOTTOM SHEET
+  // ─────────────────────────────────────────
+
+  void _showFilterBottomSheet(
+    BuildContext context,
+  ) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -726,23 +1058,165 @@ class _SearchScreenState
         ),
       ),
       builder: (context) =>
-          const SearchFilterSheet(),
+          const _SearchFilterSheet(),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRIVATE WIDGET — _SearchResultTile
+// PRIVATE MODEL — _CategoryItem
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _SearchResultTile extends StatelessWidget {
-  final BookModel book;
-  final String query;
+class _CategoryItem {
+  final String emoji;
+  final String name;
+  final MaterialColor color;
+
+  _CategoryItem(this.emoji, this.name, this.color);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRIVATE WIDGET — _TrendingItem
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TrendingItem extends StatelessWidget {
+  final int rank;
+  final String term;
   final VoidCallback onTap;
 
-  const _SearchResultTile({
+  const _TrendingItem({
+    required this.rank,
+    required this.term,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: 10,
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 28,
+              child: Text(
+                '$rank',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                  color: rank <= 3
+                      ? AppColors.primary
+                      : Colors.grey.shade400,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            if (rank <= 3)
+              Icon(
+                Icons.trending_up_rounded,
+                size: 18,
+                color: Colors.red.shade400,
+              ),
+            if (rank <= 3)
+              const SizedBox(width: 8),
+            Text(
+              term,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            Icon(
+              Icons.north_west_rounded,
+              size: 16,
+              color: Colors.grey.shade400,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRIVATE WIDGET — _FilterChip
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onRemove;
+  final bool isReset;
+
+  const _FilterChip({
+    required this.label,
+    required this.onRemove,
+    this.isReset = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+        onTap: onRemove,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 6,
+          ),
+          decoration: BoxDecoration(
+            color: isReset
+                ? Colors.grey.shade100
+                : AppColors.primary
+                    .withOpacity(0.1),
+            borderRadius:
+                BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isReset
+                      ? Colors.grey.shade600
+                      : AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.close_rounded,
+                size: 14,
+                color: isReset
+                    ? Colors.grey.shade600
+                    : AppColors.primary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRIVATE WIDGET — _SearchResultItem
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SearchResultItem extends StatelessWidget {
+  final Book book;
+  final String searchQuery;
+  final VoidCallback onTap;
+
+  const _SearchResultItem({
     required this.book,
-    required this.query,
+    required this.searchQuery,
     required this.onTap,
   });
 
@@ -751,54 +1225,79 @@ class _SearchResultTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
+        margin: const EdgeInsets.only(
+          bottom: 14,
+        ),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius:
+              BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black
+                  .withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Row(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
           children: [
             // Cover
-            Hero(
-              tag: 'book_cover_${book.id}',
-              child: ClipRRect(
-                borderRadius:
-                    BorderRadius.circular(10),
-                child: CachedNetworkImage(
-                  imageUrl: book.coverImageUrl,
-                  width: 65,
-                  height: 90,
-                  fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) =>
-                      Container(
-                    width: 65,
-                    height: 90,
-                    color: Colors.grey.shade200,
-                    child:
-                        const Icon(Icons.book),
+            ClipRRect(
+              borderRadius:
+                  BorderRadius.circular(10),
+              child: CachedNetworkImage(
+                imageUrl: book.coverUrl,
+                width: 60,
+                height: 85,
+                fit: BoxFit.cover,
+                placeholder: (_, __) =>
+                    Container(
+                  color: Colors.grey.shade200,
+                  child: Icon(
+                    Icons.book_rounded,
+                    color:
+                        Colors.grey.shade400,
+                  ),
+                ),
+                errorWidget: (_, __, ___) =>
+                    Container(
+                  color: Colors.grey.shade200,
+                  child: Icon(
+                    Icons.broken_image_rounded,
+                    color:
+                        Colors.grey.shade400,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
 
-            // Info
+            // Details
             Expanded(
               child: Column(
                 crossAxisAlignment:
                     CrossAxisAlignment.start,
                 children: [
-                  // Title
+                  // Title with highlight
                   _HighlightedText(
                     text: book.title,
-                    highlight: query,
+                    query: searchQuery,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w700,
+                      fontWeight:
+                          FontWeight.w700,
                       fontSize: 15,
                     ),
                     highlightStyle: TextStyle(
-                      fontWeight: FontWeight.w700,
+                      fontWeight:
+                          FontWeight.w700,
                       fontSize: 15,
+                      color: AppColors.primary,
                       backgroundColor:
-                          Colors.yellow.shade200,
+                          AppColors.primary
+                              .withOpacity(0.1),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -806,88 +1305,96 @@ class _SearchResultTile extends StatelessWidget {
                   // Author
                   _HighlightedText(
                     text: book.author,
-                    highlight: query,
+                    query: searchQuery,
                     style: TextStyle(
-                      color: Colors.grey.shade600,
+                      color:
+                          Colors.grey.shade600,
                       fontSize: 13,
                     ),
                     highlightStyle: TextStyle(
-                      color: Colors.grey.shade600,
+                      color: AppColors.primary,
                       fontSize: 13,
+                      fontWeight:
+                          FontWeight.w600,
                       backgroundColor:
-                          Colors.yellow.shade200,
+                          AppColors.primary
+                              .withOpacity(0.1),
                     ),
                   ),
                   const SizedBox(height: 6),
 
-                  // Rating & Category
+                  // Rating + Category
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.star_rounded,
-                        color: Colors.amber,
+                        color: Colors
+                            .amber.shade600,
                         size: 16,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 2),
                       Text(
                         book.rating
                             .toStringAsFixed(1),
                         style: const TextStyle(
                           fontWeight:
-                              FontWeight.w600,
+                              FontWeight.w700,
                           fontSize: 12,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Container(
-                        padding: const EdgeInsets
-                            .symmetric(
+                        padding:
+                            const EdgeInsets
+                                .symmetric(
                           horizontal: 8,
                           vertical: 2,
                         ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary
-                              .withOpacity(0.1),
+                        decoration:
+                            BoxDecoration(
+                          color: Colors
+                              .grey.shade100,
                           borderRadius:
-                              BorderRadius.circular(
-                            6,
-                          ),
+                              BorderRadius
+                                  .circular(6),
                         ),
                         child: Text(
                           book.category,
                           style: TextStyle(
-                            color:
-                                AppColors.primary,
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight:
                                 FontWeight.w600,
+                            color: Colors
+                                .grey.shade600,
                           ),
                         ),
                       ),
-                      if (book.isPremium) ...[
-                        const SizedBox(width: 8),
+                      if (book.isFree) ...[
+                        const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets
-                              .symmetric(
+                          padding:
+                              const EdgeInsets
+                                  .symmetric(
                             horizontal: 6,
                             vertical: 2,
                           ),
                           decoration:
                               BoxDecoration(
                             color: Colors
-                                .amber.shade50,
+                                .green.shade50,
                             borderRadius:
                                 BorderRadius
                                     .circular(6),
                           ),
                           child: Text(
-                            '⭐ PRO',
+                            'FREE',
                             style: TextStyle(
-                              color: Colors
-                                  .amber.shade800,
-                              fontSize: 10,
+                              fontSize: 9,
                               fontWeight:
-                                  FontWeight.w700,
+                                  FontWeight
+                                      .w800,
+                              color: Colors
+                                  .green.shade700,
                             ),
                           ),
                         ),
@@ -898,26 +1405,10 @@ class _SearchResultTile extends StatelessWidget {
               ),
             ),
 
-            // Favorite Button
-            IconButton(
-              icon: Icon(
-                book.isFavorite
-                    ? Icons.favorite_rounded
-                    : Icons.favorite_outline_rounded,
-                color: book.isFavorite
-                    ? Colors.red
-                    : Colors.grey.shade400,
-                size: 22,
-              ),
-              onPressed: () {
-                context
-                    .read<FavoritesBloc>()
-                    .add(
-                      ToggleFavorite(
-                        bookId: book.id,
-                      ),
-                    );
-              },
+            // Arrow
+            Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.grey.shade400,
             ),
           ],
         ),
@@ -932,36 +1423,36 @@ class _SearchResultTile extends StatelessWidget {
 
 class _HighlightedText extends StatelessWidget {
   final String text;
-  final String highlight;
+  final String query;
   final TextStyle style;
   final TextStyle highlightStyle;
 
   const _HighlightedText({
     required this.text,
-    required this.highlight,
+    required this.query,
     required this.style,
     required this.highlightStyle,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (highlight.isEmpty) {
+    if (query.isEmpty) {
       return Text(
         text,
         style: style,
-        maxLines: 2,
+        maxLines: 1,
         overflow: TextOverflow.ellipsis,
       );
     }
 
     final lowerText = text.toLowerCase();
-    final lowerHighlight = highlight.toLowerCase();
+    final lowerQuery = query.toLowerCase();
     final spans = <TextSpan>[];
     int start = 0;
 
     while (true) {
       final index = lowerText.indexOf(
-        lowerHighlight,
+        lowerQuery,
         start,
       );
       if (index == -1) {
@@ -985,72 +1476,18 @@ class _HighlightedText extends StatelessWidget {
         TextSpan(
           text: text.substring(
             index,
-            index + highlight.length,
+            index + query.length,
           ),
           style: highlightStyle,
         ),
       );
-      start = index + highlight.length;
+      start = index + query.length;
     }
 
     return RichText(
       text: TextSpan(children: spans),
-      maxLines: 2,
+      maxLines: 1,
       overflow: TextOverflow.ellipsis,
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PRIVATE WIDGET — _CategoryChip
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _CategoryChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _CategoryChip({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 10,
-        ),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: color.withOpacity(0.2),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: color.withOpacity(0.8),
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

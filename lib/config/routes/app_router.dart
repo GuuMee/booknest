@@ -13,8 +13,8 @@ import '../../data/models/reading_progress_model.dart';
 import '../../data/enums/subscription_tier.dart';
 
 // Presentation - BLoC - Auth
-import '../presentation/blocs/auth/auth_bloc.dart';
-import '../presentation/blocs/auth/auth_state.dart';
+import '../../presentation/blocs/auth/auth_bloc.dart';
+import '../../presentation/blocs/auth/auth_state.dart';
 
 // Presentation - Screens - Splash
 import '../../presentation/screens/splash/splash_screen.dart';
@@ -32,8 +32,9 @@ import '../../presentation/screens/shell/main_shell.dart';
 
 // Presentation - Screens - Main Tabs
 import '../../presentation/screens/home/home_screen.dart';
-import '../../presentation/screens/explore/explore_screen.dart';
+import '../../presentation/screens/explore/explore_screen.dart';        // ✅ ADDED
 import '../../presentation/screens/library/my_library_screen.dart';
+import '../../presentation/screens/discover/discover_screen.dart';      // ✅ ADDED
 import '../../presentation/screens/profile/profile_screen.dart';
 
 // Presentation - Screens - Book
@@ -41,6 +42,19 @@ import '../../presentation/screens/book_detail/book_detail_screen.dart';
 
 // Presentation - Screens - Reader
 import '../../presentation/screens/reader/pdf_reader_screen.dart';
+import '../../presentation/screens/reader/reader_screen.dart';          // ✅ ADDED
+
+// Presentation - Screens - Stats
+import '../../presentation/screens/stats/reading_stats_screen.dart';    // ✅ ADDED
+
+// Presentation - Screens - Achievements
+import '../../presentation/screens/achievements/achievements_screen.dart'; // ✅ ADDED
+
+// Presentation - Screens - Category
+import '../../presentation/screens/discover/category_screen.dart';      // ✅ ADDED
+
+// Presentation - Screens - Storage
+import '../../presentation/screens/storage/storage_screen.dart';        // ✅ ADDED
 
 // Presentation - Screens - Subscription
 import '../../presentation/screens/subscription/subscription_screen.dart';
@@ -62,6 +76,9 @@ import '../../presentation/screens/settings/parental_control_screen.dart';
 import '../../presentation/screens/settings/downloads_management_screen.dart';
 import '../../presentation/screens/settings/reading_reports_screen.dart';
 
+// Presentation - Screens - Error
+import '../../presentation/screens/error/not_found_screen.dart';        // ✅ ADDED
+
 // Core - Theme
 import '../../core/theme/app_typography.dart';
 
@@ -71,6 +88,7 @@ import '../../core/theme/app_typography.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/splash',
+  debugLogDiagnostics: true,                        // ✅ ADDED
 
   // ─────────────────────────────────────────
   // REDIRECT GUARD
@@ -168,6 +186,13 @@ final GoRouter appRouter = GoRouter(
           ),
         ),
         GoRoute(
+          path: '/discover',                        // ✅ ADDED
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(
+            child: DiscoverScreen(),
+          ),
+        ),
+        GoRoute(
           path: '/library',
           pageBuilder: (context, state) =>
               const NoTransitionPage(
@@ -247,6 +272,49 @@ final GoRouter appRouter = GoRouter(
           },
         );
       },
+    ),
+
+    // ── Reader ──────────────────────────────
+    GoRoute(                                        // ✅ ADDED
+      path: '/reader/:id',
+      builder: (context, state) {
+        final bookId =
+            state.pathParameters['id']!;
+        return ReaderScreen(bookId: bookId);
+      },
+    ),
+
+    // ── Stats ───────────────────────────────
+    GoRoute(                                        // ✅ ADDED
+      path: '/stats',
+      builder: (context, state) =>
+          const ReadingStatsScreen(),
+    ),
+
+    // ── Achievements ────────────────────────
+    GoRoute(                                        // ✅ ADDED
+      path: '/achievements',
+      builder: (context, state) =>
+          const AchievementsScreen(),
+    ),
+
+    // ── Category ────────────────────────────
+    GoRoute(                                        // ✅ ADDED
+      path: '/category/:name',
+      builder: (context, state) {
+        final category =
+            state.pathParameters['name']!;
+        return CategoryScreen(
+          category: category,
+        );
+      },
+    ),
+
+    // ── Storage ─────────────────────────────
+    GoRoute(                                        // ✅ ADDED
+      path: '/storage',
+      builder: (context, state) =>
+          const StorageScreen(),
     ),
 
     // ── Subscription ────────────────────────
@@ -338,7 +406,8 @@ final GoRouter appRouter = GoRouter(
   errorBuilder: (context, state) => Scaffold(
     body: Center(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment:
+            MainAxisAlignment.center,
         children: [
           Lottie.asset(
             'assets/animations/404.json',
